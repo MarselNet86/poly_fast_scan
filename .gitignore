@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+workspace.xml
+
+# Environment variables
+.env
+
+# MacOS
+.DS_Store
+
+# Project specific
+files/
