@@ -54,16 +54,15 @@ def create_orderbook_figure(df, row_idx):
     )
     anomaly_threshold = calculate_anomaly_threshold(all_sizes)
 
-    # Создаем фигуру с тремя рядами: стаканы, цена, lag
+    # Создаем фигуру с двумя рядами: стаканы и цена
     fig = make_subplots(
-        rows=3, cols=2,
-        subplot_titles=('UP Contract Orderbook', 'DOWN Contract Orderbook', '', '', '', ''),
+        rows=2, cols=2,
+        subplot_titles=('UP Contract Orderbook', 'DOWN Contract Orderbook', '', ''),
         horizontal_spacing=0.12,
-        vertical_spacing=0.08,
-        row_heights=[0.45, 0.35, 0.20],
+        vertical_spacing=0.1,
+        row_heights=[0.55, 0.45],
         specs=[
             [{"type": "bar"}, {"type": "bar"}],
-            [{"type": "scatter", "colspan": 2}, None],
             [{"type": "scatter", "colspan": 2}, None]
         ]
     )
@@ -82,7 +81,9 @@ def create_orderbook_figure(df, row_idx):
             name='UP Bids',
             marker=dict(color=up_bid_colors, line=dict(color='darkgreen', width=1)),
             text=[f"${s:,.0f}" if pd.notna(s) else "" for s in data['up']['bid_sizes']],
-            textposition='inside',
+            textposition='auto',
+            textfont=dict(size=14, color='white'),
+            cliponaxis=False,
             hovertemplate='Price: %{y}<br>Size: %{text}<extra></extra>'
         ),
         row=1, col=1
@@ -102,7 +103,9 @@ def create_orderbook_figure(df, row_idx):
             name='UP Asks',
             marker=dict(color=up_ask_colors, line=dict(color='darkred', width=1)),
             text=[f"${s:,.0f}" if pd.notna(s) else "" for s in data['up']['ask_sizes']],
-            textposition='inside',
+            textposition='auto',
+            textfont=dict(size=14, color='white'),
+            cliponaxis=False,
             hovertemplate='Price: %{y}<br>Size: %{text}<extra></extra>'
         ),
         row=1, col=1
@@ -122,7 +125,9 @@ def create_orderbook_figure(df, row_idx):
             name='DOWN Bids',
             marker=dict(color=down_bid_colors, line=dict(color='darkgreen', width=1)),
             text=[f"${s:,.0f}" if pd.notna(s) else "" for s in data['down']['bid_sizes']],
-            textposition='inside',
+            textposition='auto',
+            textfont=dict(size=14, color='white'),
+            cliponaxis=False,
             hovertemplate='Price: %{y}<br>Size: %{text}<extra></extra>'
         ),
         row=1, col=2
@@ -142,7 +147,9 @@ def create_orderbook_figure(df, row_idx):
             name='DOWN Asks',
             marker=dict(color=down_ask_colors, line=dict(color='darkred', width=1)),
             text=[f"${s:,.0f}" if pd.notna(s) else "" for s in data['down']['ask_sizes']],
-            textposition='inside',
+            textposition='auto',
+            textfont=dict(size=14, color='white'),
+            cliponaxis=False,
             hovertemplate='Price: %{y}<br>Size: %{text}<extra></extra>'
         ),
         row=1, col=2
@@ -163,105 +170,63 @@ def create_orderbook_figure(df, row_idx):
         row=2, col=1
     )
 
-    # 2. Oracle BTC - синяя линия (только при наличии данных)
+    # 2. Oracle BTC - синяя линия
     oracle_prices = df['oracle_btc_price'].values if 'oracle_btc_price' in df.columns else np.array([np.nan] * len(df))
     oracle_mask = ~pd.isna(oracle_prices)
-    if oracle_mask.any():
-        fig.add_trace(
-            go.Scatter(
-                x=[i for i, m in enumerate(oracle_mask) if m],
-                y=[float(p) for p, m in zip(oracle_prices, oracle_mask) if m],
-                mode='lines', name='Oracle BTC',
-                line=dict(color='#2196F3', width=2),
-                hovertemplate='Oracle: $%{y:,.2f}<extra></extra>'
-            ),
+    fig.add_trace(
+        go.Scatter(
+            x=[i for i, m in enumerate(oracle_mask) if m],
+            y=[float(p) for p, m in zip(oracle_prices, oracle_mask) if m],
+            mode='lines', name='Oracle BTC',
+            line=dict(color='#2196F3', width=2),
+            hovertemplate='Oracle: $%{y:,.2f}<extra></extra>'
+        ),
+        row=2, col=1
+    )
+
+    # 3. Strike price - первая не-NaN цена oracle
+    first_oracle = next((float(p) for p in oracle_prices if pd.notna(p)), None)
+    if first_oracle:
+        fig.add_hline(
+            y=first_oracle, line_dash="dash", line_color="rgba(255,255,255,0.5)",
+            annotation_text=f"Strike: ${first_oracle:,.0f}",
+            annotation_position="right",
+            annotation_font_color="white",
             row=2, col=1
         )
 
-        # 3. Strike price - первая не-NaN цена oracle
-        first_oracle = next((float(p) for p in oracle_prices if pd.notna(p)), None)
-        if first_oracle:
-            fig.add_hline(
-                y=first_oracle, line_dash="dash", line_color="rgba(255,255,255,0.5)",
-                annotation_text=f"Strike: ${first_oracle:,.0f}",
-                annotation_position="right",
-                annotation_font_color="white",
-                row=2, col=1
-            )
+    # 4. VWAP 30s - серая пунктирная линия
+    vwap = df['binance_vwap_30s'].values if 'binance_vwap_30s' in df.columns else np.array([np.nan] * len(df))
+    vwap_mask = ~pd.isna(vwap)
+    fig.add_trace(
+        go.Scatter(
+            x=[i for i, m in enumerate(vwap_mask) if m],
+            y=[float(v) for v, m in zip(vwap, vwap_mask) if m],
+            mode='lines', name='VWAP 30s',
+            line=dict(color='#888', width=1, dash='dot'),
+            hovertemplate='VWAP: $%{y:,.2f}<extra></extra>'
+        ),
+        row=2, col=1
+    )
 
-    # 4. VWAP 30s - серая пунктирная линия (опционально)
-    if 'binance_vwap_30s' in df.columns:
-        vwap = df['binance_vwap_30s'].values
-        vwap_mask = ~pd.isna(vwap)
-        if vwap_mask.any():
-            fig.add_trace(
-                go.Scatter(
-                    x=[i for i, m in enumerate(vwap_mask) if m],
-                    y=[float(v) for v, m in zip(vwap, vwap_mask) if m],
-                    mode='lines', name='VWAP 30s',
-                    line=dict(color='#888', width=1, dash='dot'),
-                    hovertemplate='VWAP: $%{y:,.2f}<extra></extra>'
-                ),
-                row=2, col=1
-            )
-
-    # 5. Текущая точка на ценовом графике
+    # 4. Текущая точка на ценовом графике (trace 7)
     current_binance = binance_prices[row_idx]
-    if pd.notna(current_binance):
-        fig.add_trace(
-            go.Scatter(
-                x=[row_idx], y=[float(current_binance)],
-                mode='markers', name='Current Position',
-                marker=dict(size=12, color='#FF6B00', symbol='circle',
-                           line=dict(color='white', width=2)),
-                hovertemplate=f'Current: ${float(current_binance):,.2f}<extra></extra>',
-                showlegend=False
-            ),
-            row=2, col=1
-        )
-
-    # === LAG SUBPLOT (row=3) ===
-    if 'lag' in df.columns:
-        lag_values = df['lag'].values
-    else:
-        # Вычислить lag если колонки нет
-        lag_values = np.where(
-            pd.notna(oracle_prices) & pd.notna(binance_prices),
-            oracle_prices - binance_prices,
-            np.nan
-        )
-
-    # Заполнить NaN нулями для отображения
-    lag_filled = np.nan_to_num(lag_values, nan=0.0)
-
-    # Положительный lag (Oracle > Binance) - зелёный
-    lag_positive = np.where(lag_filled >= 0, lag_filled, 0)
     fig.add_trace(
         go.Scatter(
-            x=x_indices, y=lag_positive,
-            fill='tozeroy', name='Lag+ (Oracle > Binance)',
-            line=dict(color='#4CAF50', width=1),
-            fillcolor='rgba(76, 175, 80, 0.5)',
-            hovertemplate='Lag: %{y:.2f}<extra></extra>'
+            x=[row_idx] if pd.notna(current_binance) else [],
+            y=[float(current_binance)] if pd.notna(current_binance) else [],
+            mode='markers', name='Current Position',
+            marker=dict(size=12, color='#FF6B00', symbol='circle',
+                       line=dict(color='white', width=2)),
+            hovertemplate=f'Current: ${float(current_binance or 0):,.2f}<extra></extra>',
+            showlegend=False,
+            visible=True if pd.notna(current_binance) else 'legendonly'
         ),
-        row=3, col=1
+        row=2, col=1
     )
 
-    # Отрицательный lag (Binance > Oracle) - красный
-    lag_negative = np.where(lag_filled < 0, lag_filled, 0)
-    fig.add_trace(
-        go.Scatter(
-            x=x_indices, y=lag_negative,
-            fill='tozeroy', name='Lag- (Binance > Oracle)',
-            line=dict(color='#F44336', width=1),
-            fillcolor='rgba(244, 67, 54, 0.5)',
-            hovertemplate='Lag: %{y:.2f}<extra></extra>'
-        ),
-        row=3, col=1
-    )
-
-    # Вертикальная линия текущей позиции на lag графике
-    fig.add_vline(x=row_idx, line_color='white', line_width=1, line_dash='dot', row=3, col=1)
+    # Вертикальная линия текущей позиции на графиках
+    fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=2, col=1)
 
     # Вычисляем метрики давления
     up_pressure, up_bid_total, up_ask_total = calculate_pressure(
@@ -279,6 +244,8 @@ def create_orderbook_figure(df, row_idx):
             font=dict(size=14)
         ),
         barmode='overlay',
+        bargap=0.3,  # Промежуток между барами (30%)
+        bargroupgap=0.1,  # Промежуток между группами баров (10%)
         height=750,
         showlegend=True,
         legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
@@ -287,18 +254,45 @@ def create_orderbook_figure(df, row_idx):
         font=dict(color='white')
     )
 
-    # Оси для стаканов (row=1)
-    fig.update_xaxes(title_text="<- Bids | Asks ->", row=1, col=1, gridcolor='#444')
-    fig.update_xaxes(title_text="<- Bids | Asks ->", row=1, col=2, gridcolor='#444')
+    # Вычисляем ЕДИНЫЙ масштаб для обоих стаканов (чтобы можно было сравнивать)
+    # Собираем все размеры
+    all_bid_sizes = [abs(s) for s in data['up']['bid_sizes'] if pd.notna(s)] + \
+                    [abs(s) for s in data['down']['bid_sizes'] if pd.notna(s)]
+    all_ask_sizes = [s for s in data['up']['ask_sizes'] if pd.notna(s)] + \
+                    [s for s in data['down']['ask_sizes'] if pd.notna(s)]
+    
+    # Находим максимум среди всех данных
+    max_bid = max(all_bid_sizes) if all_bid_sizes else 0
+    max_ask = max(all_ask_sizes) if all_ask_sizes else 0
+    global_max = max(max_bid, max_ask, 1)  # Минимум 1 чтобы избежать деления на 0
+    
+    # Единый диапазон для обоих стаканов (35% отступ)
+    unified_range = global_max * 1.35
+
+    # Оси для стаканов (row=1) с ЕДИНЫМ симметричным диапазоном
+    fig.update_xaxes(
+        title_text="<- Bids | Asks ->", 
+        row=1, col=1, 
+        gridcolor='#444',
+        range=[-unified_range, unified_range],  # Единый диапазон
+        zeroline=True,
+        zerolinecolor='rgba(255,255,255,0.5)',
+        zerolinewidth=2
+    )
+    fig.update_xaxes(
+        title_text="<- Bids | Asks ->", 
+        row=1, col=2, 
+        gridcolor='#444',
+        range=[-unified_range, unified_range],  # Единый диапазон
+        zeroline=True,
+        zerolinecolor='rgba(255,255,255,0.5)',
+        zerolinewidth=2
+    )
     fig.update_yaxes(title_text="Price Level", row=1, col=1, gridcolor='#444')
     fig.update_yaxes(title_text="Price Level", row=1, col=2, gridcolor='#444')
 
     # Оси для ценового графика (row=2)
-    fig.update_xaxes(title_text="", row=2, col=1, gridcolor='#444', showticklabels=False)
+    fig.update_xaxes(title_text="Timeline", row=2, col=1, gridcolor='#444')
     fig.update_yaxes(title_text="BTC Price ($)", row=2, col=1, gridcolor='#444')
-
-    # Оси для lag графика (row=3)
-    fig.update_xaxes(title_text="Timeline", row=3, col=1, gridcolor='#444')
-    fig.update_yaxes(title_text="Lag", row=3, col=1, gridcolor='#444')
 
     return fig

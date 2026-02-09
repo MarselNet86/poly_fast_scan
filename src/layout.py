@@ -142,16 +142,6 @@ def create_legend():
                 html.Span("┄", style={'color': '#888', 'fontSize': '16px', 'marginRight': '10px'}),
                 html.Span("VWAP 30s", style={'color': 'white'})
             ], style={'marginBottom': '15px'}),
-            # Lag
-            html.P("Lag Indicator:", style={'color': '#888', 'margin': '5px 0', 'fontSize': '12px'}),
-            html.Div([
-                html.Span("", style={'color': '#4CAF50', 'fontSize': '20px', 'marginRight': '10px'}),
-                html.Span("Oracle > Binance", style={'color': 'white'})
-            ], style={'marginBottom': '8px'}),
-            html.Div([
-                html.Span("", style={'color': '#F44336', 'fontSize': '20px', 'marginRight': '10px'}),
-                html.Span("Binance > Oracle", style={'color': 'white'})
-            ], style={'marginBottom': '10px'}),
         ])
     ])
 

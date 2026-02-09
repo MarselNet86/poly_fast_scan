@@ -293,12 +293,9 @@ def register_callbacks(app):
         patched_fig['data'][3]['text'] = trace_data['down_asks']['text']
         patched_fig['data'][3]['marker']['color'] = trace_data['down_asks']['colors']
 
-        # Обновляем позицию маркера на ценовом графике (trace 8 - Current Position)
-        patched_fig['data'][8]['x'] = [trace_data['current_price_x']]
-        patched_fig['data'][8]['y'] = [trace_data['current_price_y']]
-
-        # Обновляем вертикальную линию на lag графике
-        # (это shapes, не traces - обновляется через layout)
+        # Обновляем позицию маркера на ценовом графике (trace 7 - Current Position)
+        patched_fig['data'][7]['x'] = trace_data['current_price_x']
+        patched_fig['data'][7]['y'] = trace_data['current_price_y']
 
         # Формируем заголовок
         title_text = (

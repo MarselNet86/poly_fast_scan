@@ -156,8 +156,8 @@ class TraceDataCache:
             'down_bid_total': down_bid_total,
             'down_ask_total': down_ask_total,
             # Позиция маркера на price chart
-            'current_price_x': row_idx,
-            'current_price_y': float(row.get('binance_btc_price', 0)) if pd.notna(row.get('binance_btc_price')) else 0
+            'current_price_x': [row_idx],
+            'current_price_y': [float(row.get('binance_btc_price', 0)) if pd.notna(row.get('binance_btc_price')) else 0]
         }
         return trace_data
 
