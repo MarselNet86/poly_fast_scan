@@ -101,3 +101,26 @@ def get_file_info(df, filename):
         'time_end': df['timestamp_et'].iloc[-1] if 'timestamp_et' in df.columns else 'N/A',
     }
     return info
+
+
+def compute_cumulative_times(df):
+    """
+    Вычислить накопленное время от первой строки для каждой строки.
+
+    Args:
+        df: DataFrame с колонкой 'timestamp_ms'
+
+    Returns:
+        list: cumulative_times[i] = миллисекунды от row 0 до row i
+    """
+    if 'timestamp_ms' not in df.columns or len(df) == 0:
+        return []
+
+    timestamps = df['timestamp_ms'].values
+    cumulative = [0]
+
+    for i in range(1, len(timestamps)):
+        delta = max(0, int(timestamps[i] - timestamps[i - 1]))
+        cumulative.append(cumulative[-1] + delta)
+
+    return cumulative
