@@ -220,18 +220,34 @@ def create_orderbook_figure(df, row_idx):
             row=2, col=1
         )
 
-    # 5. Текущая точка на ценовом графике
+    # 5. Текущая точка Binance (trace 7)
     current_binance = binance_prices[row_idx]
     fig.add_trace(
         go.Scatter(
             x=[row_idx] if pd.notna(current_binance) else [],
             y=[float(current_binance)] if pd.notna(current_binance) else [],
-            mode='markers', name='Current Position',
+            mode='markers', name='Current Binance',
             marker=dict(size=12, color='#FF6B00', symbol='circle',
                        line=dict(color='white', width=2)),
-            hovertemplate=f'Current: ${float(current_binance or 0):,.2f}<extra></extra>',
+            hovertemplate=f'Binance: ${float(current_binance or 0):,.2f}<extra></extra>',
             showlegend=False,
-            visible=True if pd.notna(current_binance) else 'legendonly'
+            visible=True
+        ),
+        row=2, col=1
+    )
+
+    # 6. Текущая точка Oracle (trace 8)
+    current_oracle = oracle_prices[row_idx] if row_idx < len(oracle_prices) else np.nan
+    fig.add_trace(
+        go.Scatter(
+            x=[row_idx] if pd.notna(current_oracle) else [],
+            y=[float(current_oracle)] if pd.notna(current_oracle) else [],
+            mode='markers', name='Current Oracle',
+            marker=dict(size=12, color='#2196F3', symbol='circle',
+                       line=dict(color='white', width=2)),
+            hovertemplate=f'Oracle: ${float(current_oracle or 0):,.2f}<extra></extra>',
+            showlegend=False,
+            visible=True
         ),
         row=2, col=1
     )
