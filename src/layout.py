@@ -108,44 +108,6 @@ def create_file_info_panel():
     ])
 
 
-def create_legend():
-    """Создать легенду"""
-    return html.Div([
-        html.Hr(style={'borderColor': '#444'}),
-        html.H3("Legend", style={'color': 'white'}),
-        html.Div([
-            # Orderbook
-            html.P("Orderbook:", style={'color': '#888', 'margin': '5px 0', 'fontSize': '12px'}),
-            html.Div([
-                html.Span("", style={'color': 'rgba(0, 200, 83, 0.7)', 'fontSize': '20px', 'marginRight': '10px'}),
-                html.Span("Bids (Buy Orders)", style={'color': 'white'})
-            ], style={'marginBottom': '8px'}),
-            html.Div([
-                html.Span("", style={'color': 'rgba(244, 67, 54, 0.7)', 'fontSize': '20px', 'marginRight': '10px'}),
-                html.Span("Asks (Sell Orders)", style={'color': 'white'})
-            ], style={'marginBottom': '8px'}),
-            html.Div([
-                html.Span("", style={'color': 'rgba(0, 255, 100, 1)', 'fontSize': '20px', 'marginRight': '10px'}),
-                html.Span("Anomaly (>2x avg)", style={'color': 'white'})
-            ], style={'marginBottom': '15px'}),
-            # Price Chart
-            html.P("Price Chart:", style={'color': '#888', 'margin': '5px 0', 'fontSize': '12px'}),
-            html.Div([
-                html.Span("━", style={'color': '#FF6B00', 'fontSize': '16px', 'marginRight': '10px'}),
-                html.Span("Binance BTC", style={'color': 'white'})
-            ], style={'marginBottom': '8px'}),
-            html.Div([
-                html.Span("━", style={'color': '#2196F3', 'fontSize': '16px', 'marginRight': '10px'}),
-                html.Span("Oracle BTC", style={'color': 'white'})
-            ], style={'marginBottom': '8px'}),
-            html.Div([
-                html.Span("┄", style={'color': '#888', 'fontSize': '16px', 'marginRight': '10px'}),
-                html.Span("VWAP 30s", style={'color': 'white'})
-            ], style={'marginBottom': '15px'}),
-        ])
-    ])
-
-
 def create_trading_context():
     """Создать панель с торговым контекстом"""
     return html.Div([
@@ -202,7 +164,6 @@ def create_right_panel():
         create_file_selector(),
         create_file_info_panel(),
         create_buffer_settings(),
-        create_legend(),
         create_trading_context()
     ], style={
         'flex': '1',

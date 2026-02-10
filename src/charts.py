@@ -170,32 +170,7 @@ def create_orderbook_figure(df, row_idx):
         row=2, col=1
     )
 
-    # 2. Oracle BTC - синяя линия
-    oracle_prices = df['oracle_btc_price'].values if 'oracle_btc_price' in df.columns else np.array([np.nan] * len(df))
-    oracle_mask = ~pd.isna(oracle_prices)
-    fig.add_trace(
-        go.Scatter(
-            x=[i for i, m in enumerate(oracle_mask) if m],
-            y=[float(p) for p, m in zip(oracle_prices, oracle_mask) if m],
-            mode='lines', name='Oracle BTC',
-            line=dict(color='#2196F3', width=2),
-            hovertemplate='Oracle: $%{y:,.2f}<extra></extra>'
-        ),
-        row=2, col=1
-    )
-
-    # 3. Strike price - первая не-NaN цена oracle
-    first_oracle = next((float(p) for p in oracle_prices if pd.notna(p)), None)
-    if first_oracle:
-        fig.add_hline(
-            y=first_oracle, line_dash="dash", line_color="rgba(255,255,255,0.5)",
-            annotation_text=f"Strike: ${first_oracle:,.0f}",
-            annotation_position="right",
-            annotation_font_color="white",
-            row=2, col=1
-        )
-
-    # 4. VWAP 30s - серая пунктирная линия
+    # 2. VWAP 30s - серая пунктирная линия
     vwap = df['binance_vwap_30s'].values if 'binance_vwap_30s' in df.columns else np.array([np.nan] * len(df))
     vwap_mask = ~pd.isna(vwap)
     fig.add_trace(
@@ -209,7 +184,32 @@ def create_orderbook_figure(df, row_idx):
         row=2, col=1
     )
 
-    # 4. Текущая точка на ценовом графике (trace 7)
+    # 3. Oracle BTC - синяя линия
+    oracle_prices = df['oracle_btc_price'].values if 'oracle_btc_price' in df.columns else np.array([np.nan] * len(df))
+    oracle_mask = ~pd.isna(oracle_prices)
+    fig.add_trace(
+        go.Scatter(
+            x=[i for i, m in enumerate(oracle_mask) if m],
+            y=[float(p) for p, m in zip(oracle_prices, oracle_mask) if m],
+            mode='lines', name='Oracle BTC',
+            line=dict(color='#2196F3', width=2),
+            hovertemplate='Oracle: $%{y:,.2f}<extra></extra>'
+        ),
+        row=2, col=1
+    )
+
+    # 4. Strike price - первая не-NaN цена oracle
+    first_oracle = next((float(p) for p in oracle_prices if pd.notna(p)), None)
+    if first_oracle:
+        fig.add_hline(
+            y=first_oracle, line_dash="dash", line_color="rgba(255,255,255,0.5)",
+            annotation_text=f"Strike: ${first_oracle:,.0f}",
+            annotation_position="right",
+            annotation_font_color="white",
+            row=2, col=1
+        )
+
+    # 5. Текущая точка на ценовом графике
     current_binance = binance_prices[row_idx]
     fig.add_trace(
         go.Scatter(
@@ -248,7 +248,7 @@ def create_orderbook_figure(df, row_idx):
         bargroupgap=0.1,  # Промежуток между группами баров (10%)
         height=750,
         showlegend=True,
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+        legend=dict(orientation='h', yanchor='top', y=-0.15, xanchor='center', x=0.5),
         paper_bgcolor='#1e1e1e',
         plot_bgcolor='#2d2d2d',
         font=dict(color='white')
