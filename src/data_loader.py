@@ -124,3 +124,43 @@ def compute_cumulative_times(df):
         cumulative.append(cumulative[-1] + delta)
 
     return cumulative
+
+
+def calculate_orderbook_range(df):
+    """
+    Вычислить min/max размеров ордеров по всему периоду (DataFrame).
+    Используется для нормализации баров стакана.
+
+    Args:
+        df: DataFrame с данными стакана
+
+    Returns:
+        dict: {
+            'min_size': минимальный размер ордера,
+            'max_size': максимальный размер ордера,
+            'display_width': фиксированная ширина для отображения
+        }
+    """
+    all_sizes = []
+
+    # Собираем все размеры из всех строк
+    size_columns = [
+        'up_bid_1_size', 'up_bid_2_size', 'up_bid_3_size', 'up_bid_4_size', 'up_bid_5_size',
+        'up_ask_1_size', 'up_ask_2_size', 'up_ask_3_size', 'up_ask_4_size', 'up_ask_5_size',
+        'down_bid_1_size', 'down_bid_2_size', 'down_bid_3_size', 'down_bid_4_size', 'down_bid_5_size',
+        'down_ask_1_size', 'down_ask_2_size', 'down_ask_3_size', 'down_ask_4_size', 'down_ask_5_size',
+    ]
+
+    for col in size_columns:
+        if col in df.columns:
+            values = df[col].dropna().values
+            all_sizes.extend([abs(v) for v in values if v > 0])
+
+    if not all_sizes:
+        return {'min_size': 1, 'max_size': 1, 'display_width': 100}
+
+    return {
+        'min_size': min(all_sizes),
+        'max_size': max(all_sizes),
+        'display_width': 100  # Фиксированная ширина графика
+    }

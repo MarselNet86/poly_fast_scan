@@ -8,7 +8,13 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from .data_loader import get_orderbook_data, calculate_anomaly_threshold, calculate_pressure
+from .data_loader import (
+    get_orderbook_data,
+    calculate_anomaly_threshold,
+    calculate_pressure,
+    calculate_orderbook_range,
+)
+from .config import BAR_SCALE_COEFF
 
 
 def get_bar_colors(sizes, base_color, anomaly_color, threshold):
@@ -54,6 +60,10 @@ def create_orderbook_figure(df, row_idx):
     )
     anomaly_threshold = calculate_anomaly_threshold(all_sizes)
 
+    # Вычисляем глобальный максимум ЗА ВЕСЬ ПЕРИОД
+    range_data = calculate_orderbook_range(df)
+    global_max = range_data['max_size']
+    
     # Создаем фигуру с двумя рядами: стаканы и цена
     fig = make_subplots(
         rows=2, cols=2,
@@ -76,7 +86,7 @@ def create_orderbook_figure(df, row_idx):
     fig.add_trace(
         go.Bar(
             y=[f"{p:.2f}" if pd.notna(p) else "N/A" for p in data['up']['bid_prices']],
-            x=[-s if pd.notna(s) else 0 for s in data['up']['bid_sizes']],
+            x=[-abs(s) * BAR_SCALE_COEFF if pd.notna(s) else 0 for s in data['up']['bid_sizes']],
             orientation='h',
             name='UP Bids',
             marker=dict(color=up_bid_colors, line=dict(color='darkgreen', width=1)),
@@ -98,7 +108,7 @@ def create_orderbook_figure(df, row_idx):
     fig.add_trace(
         go.Bar(
             y=[f"{p:.2f}" if pd.notna(p) else "N/A" for p in data['up']['ask_prices']],
-            x=[s if pd.notna(s) else 0 for s in data['up']['ask_sizes']],
+            x=[abs(s) * BAR_SCALE_COEFF if pd.notna(s) else 0 for s in data['up']['ask_sizes']],
             orientation='h',
             name='UP Asks',
             marker=dict(color=up_ask_colors, line=dict(color='darkred', width=1)),
@@ -117,10 +127,11 @@ def create_orderbook_figure(df, row_idx):
         'rgba(0, 200, 83, 0.7)', 'rgba(0, 255, 100, 1)',
         anomaly_threshold
     )
+
     fig.add_trace(
         go.Bar(
             y=[f"{p:.2f}" if pd.notna(p) else "N/A" for p in data['down']['bid_prices']],
-            x=[-s if pd.notna(s) else 0 for s in data['down']['bid_sizes']],
+            x=[-abs(s) * BAR_SCALE_COEFF if pd.notna(s) else 0 for s in data['down']['bid_sizes']],
             orientation='h',
             name='DOWN Bids',
             marker=dict(color=down_bid_colors, line=dict(color='darkgreen', width=1)),
@@ -142,7 +153,7 @@ def create_orderbook_figure(df, row_idx):
     fig.add_trace(
         go.Bar(
             y=[f"{p:.2f}" if pd.notna(p) else "N/A" for p in data['down']['ask_prices']],
-            x=[s if pd.notna(s) else 0 for s in data['down']['ask_sizes']],
+            x=[abs(s) * BAR_SCALE_COEFF if pd.notna(s) else 0 for s in data['down']['ask_sizes']],
             orientation='h',
             name='DOWN Asks',
             marker=dict(color=down_ask_colors, line=dict(color='darkred', width=1)),
@@ -244,7 +255,7 @@ def create_orderbook_figure(df, row_idx):
             font=dict(size=14)
         ),
         barmode='overlay',
-        bargap=0.3,  # Промежуток между барами (30%)
+        bargap=0.2,  # Промежуток между барами (30%)
         bargroupgap=0.1,  # Промежуток между группами баров (10%)
         height=750,
         showlegend=True,
@@ -254,27 +265,11 @@ def create_orderbook_figure(df, row_idx):
         font=dict(color='white')
     )
 
-    # Вычисляем ЕДИНЫЙ масштаб для обоих стаканов (чтобы можно было сравнивать)
-    # Собираем все размеры
-    all_bid_sizes = [abs(s) for s in data['up']['bid_sizes'] if pd.notna(s)] + \
-                    [abs(s) for s in data['down']['bid_sizes'] if pd.notna(s)]
-    all_ask_sizes = [s for s in data['up']['ask_sizes'] if pd.notna(s)] + \
-                    [s for s in data['down']['ask_sizes'] if pd.notna(s)]
-    
-    # Находим максимум среди всех данных
-    max_bid = max(all_bid_sizes) if all_bid_sizes else 0
-    max_ask = max(all_ask_sizes) if all_ask_sizes else 0
-    global_max = max(max_bid, max_ask, 1)  # Минимум 1 чтобы избежать деления на 0
-    
-    # Единый диапазон для обоих стаканов (35% отступ)
-    unified_range = global_max * 1.35
-
-    # Оси для стаканов (row=1) с ЕДИНЫМ симметричным диапазоном
     fig.update_xaxes(
         title_text="<- Bids | Asks ->", 
         row=1, col=1, 
         gridcolor='#444',
-        range=[-unified_range, unified_range],  # Единый диапазон
+        range=[-global_max, global_max],  # Единый диапазон
         zeroline=True,
         zerolinecolor='rgba(255,255,255,0.5)',
         zerolinewidth=2
@@ -283,7 +278,7 @@ def create_orderbook_figure(df, row_idx):
         title_text="<- Bids | Asks ->", 
         row=1, col=2, 
         gridcolor='#444',
-        range=[-unified_range, unified_range],  # Единый диапазон
+        range=[-global_max, global_max],  # Единый диапазон
         zeroline=True,
         zerolinecolor='rgba(255,255,255,0.5)',
         zerolinewidth=2

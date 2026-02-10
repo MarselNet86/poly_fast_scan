@@ -7,6 +7,7 @@ from collections import OrderedDict
 from typing import Dict, Any, Optional
 import sys
 import pandas as pd
+from .config import BAR_SCALE_COEFF
 
 
 class LRUCache:
@@ -124,25 +125,25 @@ class TraceDataCache:
         trace_data = {
             'up_bids': {
                 'y': [f"{p:.2f}" if pd.notna(p) else "N/A" for p in ob_data['up']['bid_prices']],
-                'x': [-s if pd.notna(s) else 0 for s in ob_data['up']['bid_sizes']],
+                'x': [-abs(s) * BAR_SCALE_COEFF if pd.notna(s) else 0 for s in ob_data['up']['bid_sizes']],
                 'text': [f"${s:,.0f}" if pd.notna(s) else "" for s in ob_data['up']['bid_sizes']],
                 'colors': get_colors(ob_data['up']['bid_sizes'], 'rgba(0, 200, 83, 0.7)', 'rgba(0, 255, 100, 1)')
             },
             'up_asks': {
                 'y': [f"{p:.2f}" if pd.notna(p) else "N/A" for p in ob_data['up']['ask_prices']],
-                'x': [s if pd.notna(s) else 0 for s in ob_data['up']['ask_sizes']],
+                'x': [abs(s) * BAR_SCALE_COEFF if pd.notna(s) else 0 for s in ob_data['up']['ask_sizes']],
                 'text': [f"${s:,.0f}" if pd.notna(s) else "" for s in ob_data['up']['ask_sizes']],
                 'colors': get_colors(ob_data['up']['ask_sizes'], 'rgba(244, 67, 54, 0.7)', 'rgba(255, 100, 100, 1)')
             },
             'down_bids': {
                 'y': [f"{p:.2f}" if pd.notna(p) else "N/A" for p in ob_data['down']['bid_prices']],
-                'x': [-s if pd.notna(s) else 0 for s in ob_data['down']['bid_sizes']],
+                'x': [-abs(s) * BAR_SCALE_COEFF if pd.notna(s) else 0 for s in ob_data['down']['bid_sizes']],
                 'text': [f"${s:,.0f}" if pd.notna(s) else "" for s in ob_data['down']['bid_sizes']],
                 'colors': get_colors(ob_data['down']['bid_sizes'], 'rgba(0, 200, 83, 0.7)', 'rgba(0, 255, 100, 1)')
             },
             'down_asks': {
                 'y': [f"{p:.2f}" if pd.notna(p) else "N/A" for p in ob_data['down']['ask_prices']],
-                'x': [s if pd.notna(s) else 0 for s in ob_data['down']['ask_sizes']],
+                'x': [abs(s) * BAR_SCALE_COEFF if pd.notna(s) else 0 for s in ob_data['down']['ask_sizes']],
                 'text': [f"${s:,.0f}" if pd.notna(s) else "" for s in ob_data['down']['ask_sizes']],
                 'colors': get_colors(ob_data['down']['ask_sizes'], 'rgba(244, 67, 54, 0.7)', 'rgba(255, 100, 100, 1)')
             },

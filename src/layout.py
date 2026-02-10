@@ -108,21 +108,6 @@ def create_file_info_panel():
     ])
 
 
-def create_trading_context():
-    """Создать панель с торговым контекстом"""
-    return html.Div([
-        html.Hr(style={'borderColor': '#444'}),
-        html.H3("Trading Context", style={'color': 'white'}),
-        html.Div([
-            html.P("Thick bids, thin asks -> Buyer pressure", style={'color': '#4caf50', 'margin': '5px 0'}),
-            html.P("Thin bids, thick asks -> Seller pressure", style={'color': '#f44336', 'margin': '5px 0'}),
-            html.P("Large order on one level -> Support/Resistance wall", style={'color': '#ff9800', 'margin': '5px 0'}),
-            html.P("Contract prices range: 0-1", style={'color': '#888', 'margin': '5px 0'}),
-            html.P("1 contract = $1 on win", style={'color': '#888', 'margin': '5px 0'}),
-        ], style={'fontSize': '13px'})
-    ])
-
-
 def create_buffer_settings():
     """Создать панель настроек буфера"""
     return html.Div([
@@ -164,7 +149,6 @@ def create_right_panel():
         create_file_selector(),
         create_file_info_panel(),
         create_buffer_settings(),
-        create_trading_context()
     ], style={
         'flex': '1',
         'padding': '20px',

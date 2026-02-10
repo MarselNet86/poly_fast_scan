@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:dash.plotly.com)"
+      "WebFetch(domain:dash.plotly.com)",
+      "Bash(python3:*)"
     ]
   }
 }
