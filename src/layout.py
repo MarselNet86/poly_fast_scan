@@ -143,11 +143,14 @@ def create_left_panel():
     ], style={'flex': '3', 'padding': '20px'})
 
 
+from .widgets.active_track import create_active_track_widget
+
 def create_right_panel():
     """Создать правую панель с настройками"""
     return html.Div([
         create_file_selector(),
         create_file_info_panel(),
+        create_active_track_widget(),
         create_buffer_settings(),
     ], style={
         'flex': '1',

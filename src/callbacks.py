@@ -250,10 +250,13 @@ def register_callbacks(app):
     @callback(
         Output('main-chart', 'figure', allow_duplicate=True),
         Input('time-slider', 'value'),
-        State('file-selector', 'value'),
+        [
+            State('file-selector', 'value'),
+            State('active-track-checklist', 'value')
+        ],
         prevent_initial_call=True
     )
-    def update_chart_on_slider(slider_value, filename):
+    def update_chart_on_slider(slider_value, filename, active_track):
         """
         Обновить график при изменении позиции слайдера.
         Использует Patch для частичного обновления (только данные traces),
@@ -268,6 +271,15 @@ def register_callbacks(app):
 
         # Используем Patch для частичного обновления figure
         patched_fig = Patch()
+
+        # Реализация Active-Track: Авто-скролл нижнего графика
+        if active_track and 'enabled' in active_track:
+            # Устанавливаем окно обзора в 300 строк вокруг текущей позиции
+            # (150 влево и 150 вправо)
+            half_window = 150
+            x_min = max(0, slider_value - half_window)
+            x_max = slider_value + half_window
+            patched_fig['layout']['xaxis3']['range'] = [x_min, x_max]
 
         # Обновляем UP Bids (trace 0)
         patched_fig['data'][0]['y'] = trace_data['up_bids']['y']
