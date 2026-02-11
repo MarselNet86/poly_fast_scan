@@ -353,8 +353,13 @@ def create_orderbook_figure(df, row_idx):
     fig.update_xaxes(title_text="Timeline", row=2, col=1, gridcolor='#444')
     fig.update_yaxes(title_text="BTC Price ($)", row=2, col=1, gridcolor='#444')
 
-    # Оси для lag графика (row=3)
-    fig.update_xaxes(title_text="Timeline", row=3, col=1, gridcolor='#444')
+    # Оси для lag графика (row=3) - связаны с price chart через matches
+    fig.update_xaxes(
+        title_text="Timeline",
+        row=3, col=1,
+        gridcolor='#444',
+        matches='x3'  # Связать с xaxis3 (price chart) для синхронного зума
+    )
     fig.update_yaxes(title_text="Lag ($)", row=3, col=1, gridcolor='#444')
 
     return fig

@@ -1,5 +1,5 @@
 """
-Orderbook Visualization - Main Dash Application
+xDaimon FastScan - Main Dash Application
 Главный файл приложения для визуализации стакана ордеров Polymarket
 """
 
@@ -12,7 +12,7 @@ from src.callbacks import register_callbacks
 def create_app():
     """Создать и настроить Dash приложение"""
     app = Dash(__name__)
-    app.title = "Orderbook Visualization"
+    app.title = "xDaimon FastScan"
     app.layout = create_layout()
     register_callbacks(app)
     return app

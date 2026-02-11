@@ -272,11 +272,12 @@ def register_callbacks(app):
         Input('time-slider', 'value'),
         [
             State('file-selector', 'value'),
-            State('active-track-checklist', 'value')
+            State('active-track-checklist', 'value'),
+            State('active-track-zoom-slider', 'value')
         ],
         prevent_initial_call=True
     )
-    def update_chart_on_slider(slider_value, filename, active_track):
+    def update_chart_on_slider(slider_value, filename, active_track, zoom_level):
         """
         Обновить график при изменении позиции слайдера.
         Использует Patch для частичного обновления (только данные traces),
@@ -292,14 +293,14 @@ def register_callbacks(app):
         # Используем Patch для частичного обновления figure
         patched_fig = Patch()
 
-        # Реализация Active-Track: Авто-скролл нижнего графика
+        # Реализация Active-Track: Авто-скролл нижних графиков (price + lag)
         if active_track and 'enabled' in active_track:
-            # Устанавливаем окно обзора в 300 строк вокруг текущей позиции
-            # (150 влево и 150 вправо)
-            half_window = 150
+            # Используем значение из слайдера zoom_level (по умолчанию 150)
+            half_window = zoom_level if zoom_level else 150
             x_min = max(0, slider_value - half_window)
             x_max = slider_value + half_window
-            patched_fig['layout']['xaxis3']['range'] = [x_min, x_max]
+            patched_fig['layout']['xaxis3']['range'] = [x_min, x_max]  # Price chart
+            patched_fig['layout']['xaxis4']['range'] = [x_min, x_max]  # Lag chart
 
         # Обновляем UP Bids (trace 0)
         patched_fig['data'][0]['y'] = trace_data['up_bids']['y']
@@ -357,3 +358,59 @@ def register_callbacks(app):
     def update_fps(interval_ms):
         """Изменить частоту обновления UI на основе выбора пользователя"""
         return interval_ms
+
+    # Callback 6: Синхронизация осей при зуме/панорамировании
+    @callback(
+        Output('main-chart', 'figure', allow_duplicate=True),
+        Input('main-chart', 'relayoutData'),
+        State('active-track-checklist', 'value'),
+        prevent_initial_call=True
+    )
+    def sync_chart_axes(relayout_data, active_track):
+        """Синхронизация осей xaxis3 (price) и xaxis4 (lag) при зуме"""
+        # Пропустить если active-track включен (он сам управляет диапазоном)
+        if active_track and 'enabled' in active_track:
+            return no_update
+
+        if not relayout_data:
+            return no_update
+
+        patched_fig = Patch()
+
+        # Зум на price chart (xaxis3) -> обновить lag chart (xaxis4)
+        if 'xaxis3.range[0]' in relayout_data and 'xaxis3.range[1]' in relayout_data:
+            patched_fig['layout']['xaxis4']['range'] = [
+                relayout_data['xaxis3.range[0]'],
+                relayout_data['xaxis3.range[1]']
+            ]
+            return patched_fig
+
+        # Зум на lag chart (xaxis4) -> обновить price chart (xaxis3)
+        if 'xaxis4.range[0]' in relayout_data and 'xaxis4.range[1]' in relayout_data:
+            patched_fig['layout']['xaxis3']['range'] = [
+                relayout_data['xaxis4.range[0]'],
+                relayout_data['xaxis4.range[1]']
+            ]
+            return patched_fig
+
+        # Сброс зума (двойной клик) на price chart
+        if 'xaxis3.autorange' in relayout_data:
+            patched_fig['layout']['xaxis4']['autorange'] = True
+            return patched_fig
+
+        # Сброс зума (двойной клик) на lag chart
+        if 'xaxis4.autorange' in relayout_data:
+            patched_fig['layout']['xaxis3']['autorange'] = True
+            return patched_fig
+
+        return no_update
+
+    # Callback 7: Обновление info текста при изменении zoom slider
+    @callback(
+        Output('active-track-zoom-info', 'children'),
+        Input('active-track-zoom-slider', 'value')
+    )
+    def update_zoom_info(zoom_level):
+        """Обновить информационный текст о размере окна"""
+        total_window = zoom_level * 2
+        return f"Window: ±{zoom_level} rows ({total_window} total)"
