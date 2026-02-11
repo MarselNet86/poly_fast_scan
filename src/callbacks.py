@@ -148,10 +148,13 @@ def register_callbacks(app):
         if triggered_id == 'play-pause-btn':
             new_is_playing = not state['is_playing']
 
-            # При нажатии Play - prebuffer
+            # При нажатии Play - агрессивная prebuffer с учетом скорости
             if new_is_playing and filename:
-                buffered = prebuffer_traces(filename, slider_value, buffer_size)
-                buffer_status = f"Buffered: {buffered} trace frames ahead"
+                # Увеличиваем начальный буфер в зависимости от скорости
+                initial_buffer_multiplier = 1.5 if speed >= 4 else 1.2 if speed >= 2 else 1.0
+                initial_buffer_size = int(buffer_size * initial_buffer_multiplier)
+                buffered = prebuffer_traces(filename, slider_value, initial_buffer_size)
+                buffer_status = f"Buffered: {buffered} frames (x{speed} speed ready)"
 
         elif triggered_id == 'speed-selector':
             new_is_playing = state['is_playing']
@@ -220,12 +223,29 @@ def register_callbacks(app):
         target_row = bisect.bisect_right(cumulative_times, target_time)
         target_row = max(0, min(target_row - 1, max_rows))
 
-        # Prebuffer каждые 10 тиков (1 секунда при 100ms интервале)
+        # Адаптивная буферизация: частота зависит от скорости воспроизведения
         buffer_status = no_update
-        if n_intervals % 10 == 0 and filename:
-            prebuffer_traces(filename, target_row, buffer_size)
+        speed = state['speed']
+
+        # При высоких скоростях буферизуем чаще
+        # speed=1: каждые 5 тиков (500ms)
+        # speed=2-4: каждые 3 тика (300ms)
+        # speed>4: каждые 2 тика (200ms)
+        if speed >= 4:
+            prebuffer_interval = 2
+        elif speed >= 2:
+            prebuffer_interval = 3
+        else:
+            prebuffer_interval = 5
+
+        if n_intervals % prebuffer_interval == 0 and filename:
+            # Адаптивный размер буфера: при высоких скоростях загружаем больше
+            adaptive_buffer_size = int(buffer_size * (1 + (speed - 1) * 0.3))
+            adaptive_buffer_size = min(adaptive_buffer_size, buffer_size * 2)  # Макс 2x от базового
+
+            prebuffer_traces(filename, target_row, adaptive_buffer_size)
             ahead, total = get_buffer_stats(filename, target_row)
-            buffer_status = f"Buffer: {ahead} ahead | Total: {total}"
+            buffer_status = f"Buffer: {ahead} ahead | {total} cached | x{speed}"
 
         if target_row >= max_rows:
             new_state = {
@@ -313,6 +333,10 @@ def register_callbacks(app):
         patched_fig['data'][8]['x'] = trace_data['oracle_price_x']
         patched_fig['data'][8]['y'] = trace_data['oracle_price_y']
 
+        # Обновляем позицию маркера на lag графике (trace 10 - Current Lag)
+        patched_fig['data'][10]['x'] = trace_data['lag_x']
+        patched_fig['data'][10]['y'] = trace_data['lag_y']
+
         # Формируем заголовок
         title_text = (
             f"Orderbook @ {trace_data['timestamp']}<br>" +
@@ -324,3 +348,12 @@ def register_callbacks(app):
         patched_fig['layout']['title']['text'] = title_text
 
         return patched_fig
+
+    # Callback 5: Динамическое управление FPS (частота обновления)
+    @callback(
+        Output('playback-interval', 'interval'),
+        Input('fps-selector', 'value')
+    )
+    def update_fps(interval_ms):
+        """Изменить частоту обновления UI на основе выбора пользователя"""
+        return interval_ms

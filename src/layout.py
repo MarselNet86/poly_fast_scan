@@ -67,22 +67,19 @@ def create_playback_controls():
 
 def create_time_slider():
     """Создать слайдер для навигации по времени"""
-    return html.Div(
-        id='slider-container',
-        children=[
-            html.Label("Navigate through time:", style={'color': 'white', 'marginBottom': '10px'}),
-            dcc.Slider(
-                id='time-slider',
-                min=0,
-                max=100,
-                step=1,
-                value=0,
-                marks={},
-                tooltip={"placement": "bottom", "always_visible": True}
-            )
-        ],
-        style={'padding': '20px'}
-    )
+    return html.Div([
+        html.Hr(style={'borderColor': '#444'}),
+        html.H3("Navigate Time", style={'color': 'white'}),
+        dcc.Slider(
+            id='time-slider',
+            min=0,
+            max=100,
+            step=1,
+            value=0,
+            marks={},
+            tooltip={"placement": "bottom", "always_visible": True}
+        )
+    ])
 
 
 def create_file_selector():
@@ -108,11 +105,31 @@ def create_file_info_panel():
     ])
 
 
-def create_buffer_settings():
-    """Создать панель настроек буфера"""
+def create_performance_settings():
+    """Создать панель настроек производительности"""
     return html.Div([
         html.Hr(style={'borderColor': '#444'}),
-        html.H3("Buffer Settings", style={'color': 'white'}),
+        html.H3("Performance Settings", style={'color': 'white'}),
+
+        # FPS Settings
+        html.Div([
+            html.Label("UI Update Rate (FPS):", style={'color': '#aaa', 'fontSize': '12px', 'marginBottom': '5px'}),
+            dcc.Dropdown(
+                id='fps-selector',
+                options=[
+                    {'label': '5 FPS (Low CPU)', 'value': 200},
+                    {'label': '10 FPS (Balanced)', 'value': 100},
+                    {'label': '15 FPS (Smooth)', 'value': 67},
+                    {'label': '20 FPS (High)', 'value': 50},
+                    {'label': '30 FPS (Ultra)', 'value': 33},
+                ],
+                value=100,  # 10 FPS по умолчанию
+                clearable=False,
+                style={'marginBottom': '15px'}
+            ),
+        ]),
+
+        # Buffer Settings
         html.Div([
             html.Label("Buffer size (frames ahead):", style={'color': '#aaa', 'fontSize': '12px'}),
             dcc.Slider(
@@ -137,9 +154,8 @@ def create_left_panel():
     """Создать левую панель с графиками"""
     return html.Div([
         # Статический Graph компонент - обновляется только figure
-        dcc.Graph(id='main-chart', style={'height': '750px'}),
-        create_playback_controls(),
-        create_time_slider()
+        dcc.Graph(id='main-chart', style={'height': '900px'}),
+        create_playback_controls()
     ], style={'flex': '3', 'padding': '20px'})
 
 
@@ -150,8 +166,9 @@ def create_right_panel():
     return html.Div([
         create_file_selector(),
         create_file_info_panel(),
-        create_active_track_widget(),
-        create_buffer_settings(),
+        create_performance_settings(),
+        create_time_slider(),
+        create_active_track_widget(),   
     ], style={
         'flex': '1',
         'padding': '20px',

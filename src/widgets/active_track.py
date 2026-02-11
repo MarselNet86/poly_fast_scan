@@ -8,8 +8,6 @@ from dash import html, dcc
 def create_active_track_widget():
     """Создать виджет Active-Track"""
     return html.Div([
-        html.Hr(style={'borderColor': '#444'}),
-        html.H3("Chart Behavior", style={'color': 'white'}),
         dcc.Checklist(
             id='active-track-checklist',
             options=[

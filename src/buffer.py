@@ -160,7 +160,10 @@ class TraceDataCache:
             'binance_price_x': [row_idx] if pd.notna(row.get('binance_btc_price')) else [],
             'binance_price_y': [float(row.get('binance_btc_price'))] if pd.notna(row.get('binance_btc_price')) else [],
             'oracle_price_x': [row_idx] if pd.notna(row.get('oracle_btc_price')) else [],
-            'oracle_price_y': [float(row.get('oracle_btc_price'))] if pd.notna(row.get('oracle_btc_price')) else []
+            'oracle_price_y': [float(row.get('oracle_btc_price'))] if pd.notna(row.get('oracle_btc_price')) else [],
+            # Позиция маркера на lag chart
+            'lag_x': [row_idx] if pd.notna(row.get('lag')) else [],
+            'lag_y': [float(row.get('lag'))] if pd.notna(row.get('lag')) else []
         }
         return trace_data
 

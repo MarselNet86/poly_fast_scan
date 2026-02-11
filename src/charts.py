@@ -64,15 +64,16 @@ def create_orderbook_figure(df, row_idx):
     range_data = calculate_orderbook_range(df)
     global_max = range_data['max_size']
     
-    # Создаем фигуру с двумя рядами: стаканы и цена
+    # Создаем фигуру с тремя рядами: стаканы, цена, lag
     fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=('UP Contract Orderbook', 'DOWN Contract Orderbook', '', ''),
+        rows=3, cols=2,
+        subplot_titles=('UP Contract Orderbook', 'DOWN Contract Orderbook', '', '', '', ''),
         horizontal_spacing=0.12,
-        vertical_spacing=0.1,
-        row_heights=[0.55, 0.45],
+        vertical_spacing=0.08,
+        row_heights=[0.45, 0.35, 0.20],
         specs=[
             [{"type": "bar"}, {"type": "bar"}],
+            [{"type": "scatter", "colspan": 2}, None],
             [{"type": "scatter", "colspan": 2}, None]
         ]
     )
@@ -255,6 +256,52 @@ def create_orderbook_figure(df, row_idx):
     # Вертикальная линия текущей позиции на графиках
     fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=2, col=1)
 
+    # === LAG ГРАФИК (row=3) - разница между Binance и Oracle ===
+    lag_values = df['lag'].values if 'lag' in df.columns else np.array([np.nan] * len(df))
+    lag_mask = ~pd.isna(lag_values)
+
+    # Линия lag (trace 9)
+    fig.add_trace(
+        go.Scatter(
+            x=[i for i, m in enumerate(lag_mask) if m],
+            y=[float(lag) for lag, m in zip(lag_values, lag_mask) if m],
+            mode='lines',
+            name='Price Lag (Binance - Oracle)',
+            line=dict(color='#FFC107', width=2),
+            fill='tozeroy',
+            fillcolor='rgba(255, 193, 7, 0.2)',
+            hovertemplate='Lag: $%{y:,.2f}<extra></extra>'
+        ),
+        row=3, col=1
+    )
+
+    # Нулевая линия
+    fig.add_hline(
+        y=0, line_dash="solid", line_color="rgba(255,255,255,0.3)",
+        line_width=1,
+        row=3, col=1
+    )
+
+    # Текущая точка lag (trace 10)
+    current_lag = lag_values[row_idx] if row_idx < len(lag_values) else np.nan
+    fig.add_trace(
+        go.Scatter(
+            x=[row_idx] if pd.notna(current_lag) else [],
+            y=[float(current_lag)] if pd.notna(current_lag) else [],
+            mode='markers',
+            name='Current Lag',
+            marker=dict(size=12, color='#FFC107', symbol='circle',
+                       line=dict(color='white', width=2)),
+            hovertemplate=f'Lag: ${float(current_lag or 0):,.2f}<extra></extra>',
+            showlegend=False,
+            visible=True
+        ),
+        row=3, col=1
+    )
+
+    # Вертикальная линия текущей позиции на lag графике
+    fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=3, col=1)
+
     # Вычисляем метрики давления
     up_pressure, up_bid_total, up_ask_total = calculate_pressure(
         data['up']['bid_sizes'], data['up']['ask_sizes']
@@ -273,7 +320,7 @@ def create_orderbook_figure(df, row_idx):
         barmode='overlay',
         bargap=0.2,  # Промежуток между барами (30%)
         bargroupgap=0.1,  # Промежуток между группами баров (10%)
-        height=750,
+        height=900,  # Увеличена высота для третьего ряда
         showlegend=True,
         legend=dict(orientation='h', yanchor='top', y=-0.15, xanchor='center', x=0.5),
         paper_bgcolor='#1e1e1e',
@@ -305,5 +352,9 @@ def create_orderbook_figure(df, row_idx):
     # Оси для ценового графика (row=2)
     fig.update_xaxes(title_text="Timeline", row=2, col=1, gridcolor='#444')
     fig.update_yaxes(title_text="BTC Price ($)", row=2, col=1, gridcolor='#444')
+
+    # Оси для lag графика (row=3)
+    fig.update_xaxes(title_text="Timeline", row=3, col=1, gridcolor='#444')
+    fig.update_yaxes(title_text="Lag ($)", row=3, col=1, gridcolor='#444')
 
     return fig
