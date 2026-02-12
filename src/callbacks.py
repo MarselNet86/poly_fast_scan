@@ -7,7 +7,7 @@ import time
 import bisect
 from dash import html, callback, Output, Input, State, ctx, no_update, Patch
 from .data_loader import load_data, get_file_info, compute_cumulative_times
-from .charts import create_orderbook_figure
+from .charts import create_orderbook_chart, create_btc_chart, create_orderbook_popout_figure, create_btc_popout_figure
 from .buffer import get_trace_cache, set_cache_size
 
 
@@ -61,7 +61,9 @@ def register_callbacks(app):
     Зарегистрировать все callback функции
     """
 
+    # ========================================
     # Callback 1: Инициализация при смене файла
+    # ========================================
     @callback(
         [
             Output('cumulative-times', 'data'),
@@ -69,7 +71,8 @@ def register_callbacks(app):
             Output('time-slider', 'marks'),
             Output('time-slider', 'value'),
             Output('file-info', 'children'),
-            Output('main-chart', 'figure'),
+            Output('chart-orderbook', 'figure'),
+            Output('chart-btc', 'figure'),
             Output('buffer-status', 'children')
         ],
         [
@@ -81,7 +84,7 @@ def register_callbacks(app):
         """Инициализировать все компоненты при смене файла"""
         if not filename:
             empty_fig = {'data': [], 'layout': {'paper_bgcolor': '#1e1e1e', 'plot_bgcolor': '#2d2d2d'}}
-            return [], 0, {}, 0, "No file loaded", empty_fig, "No file"
+            return [], 0, {}, 0, "No file loaded", empty_fig, empty_fig, "No file"
 
         df = get_cached_data(filename)
         info = get_file_info(df, filename)
@@ -113,16 +116,19 @@ def register_callbacks(app):
         # Устанавливаем размер кеша
         set_cache_size(buffer_size)
 
-        # Создаем начальный график
-        fig = create_orderbook_figure(df, 0)
+        # Создаем начальные графики (два независимых)
+        ob_fig = create_orderbook_chart(df, 0)
+        btc_fig = create_btc_chart(df, 0)
 
-        # Prebuffer начальных кадров (trace data, не полные figures)
+        # Prebuffer начальных кадров
         buffered = prebuffer_traces(filename, 0, buffer_size)
         buffer_status = f"Buffered: {buffered} trace frames"
 
-        return cumulative_times, max_val, marks, 0, file_info, fig, buffer_status
+        return cumulative_times, max_val, marks, 0, file_info, ob_fig, btc_fig, buffer_status
 
+    # ========================================
     # Callback 2: Обработка Play/Pause кнопки
+    # ========================================
     @callback(
         [
             Output('playback-state', 'data'),
@@ -154,7 +160,6 @@ def register_callbacks(app):
 
             # При нажатии Play - агрессивная prebuffer с учетом скорости
             if new_is_playing and filename:
-                # Увеличиваем начальный буфер в зависимости от скорости
                 initial_buffer_multiplier = 1.5 if speed >= 4 else 1.2 if speed >= 2 else 1.0
                 initial_buffer_size = int(buffer_size * initial_buffer_multiplier)
                 buffered = prebuffer_traces(filename, slider_value, initial_buffer_size)
@@ -187,7 +192,9 @@ def register_callbacks(app):
             }
             return new_state, '▶ Play', PLAY_BTN_STYLE, True, buffer_status
 
+    # ========================================
     # Callback 3: Обновление по таймеру
+    # ========================================
     @callback(
         [
             Output('time-slider', 'value', allow_duplicate=True),
@@ -227,14 +234,10 @@ def register_callbacks(app):
         target_row = bisect.bisect_right(cumulative_times, target_time)
         target_row = max(0, min(target_row - 1, max_rows))
 
-        # Адаптивная буферизация: частота зависит от скорости воспроизведения
+        # Адаптивная буферизация
         buffer_status = no_update
         speed = state['speed']
 
-        # При высоких скоростях буферизуем чаще
-        # speed=1: каждые 5 тиков (500ms)
-        # speed=2-4: каждые 3 тика (300ms)
-        # speed>4: каждые 2 тика (200ms)
         if speed >= 4:
             prebuffer_interval = 2
         elif speed >= 2:
@@ -243,9 +246,8 @@ def register_callbacks(app):
             prebuffer_interval = 5
 
         if n_intervals % prebuffer_interval == 0 and filename:
-            # Адаптивный размер буфера: при высоких скоростях загружаем больше
             adaptive_buffer_size = int(buffer_size * (1 + (speed - 1) * 0.3))
-            adaptive_buffer_size = min(adaptive_buffer_size, buffer_size * 2)  # Макс 2x от базового
+            adaptive_buffer_size = min(adaptive_buffer_size, buffer_size * 2)
 
             prebuffer_traces(filename, target_row, adaptive_buffer_size)
             ahead, total = get_buffer_stats(filename, target_row)
@@ -270,9 +272,22 @@ def register_callbacks(app):
 
         return target_row, status, no_update, no_update, no_update, no_update, buffer_status
 
-    # Callback 4: Обновление графика через Patch (частичное обновление)
+    # ========================================
+    # Callback 4a: Обновление Orderbook графика через Patch
+    # ========================================
+    #
+    # Trace indices in orderbook chart (create_orderbook_popout_figure):
+    #   0: UP Bids (bar)
+    #   1: UP Asks (bar)
+    #   2: DOWN Bids (bar)
+    #   3: DOWN Asks (bar)
+    #   4: UP Ask Price line
+    #   5: DOWN Ask Price line
+    #   6: Current UP Ask marker
+    #   7: Current DOWN Ask marker
+    #
     @callback(
-        Output('main-chart', 'figure', allow_duplicate=True),
+        Output('chart-orderbook', 'figure', allow_duplicate=True),
         Input('time-slider', 'value'),
         [
             State('file-selector', 'value'),
@@ -281,77 +296,56 @@ def register_callbacks(app):
         ],
         prevent_initial_call=True
     )
-    def update_chart_on_slider(slider_value, filename, active_track, zoom_level):
-        """
-        Обновить график при изменении позиции слайдера.
-        Использует Patch для частичного обновления (только данные traces),
-        что уменьшает размер обновления с ~300KB до ~2KB.
-        """
+    def update_orderbook_on_slider(slider_value, filename, active_track, zoom_level):
+        """Обновить Orderbook график при изменении позиции слайдера"""
         if not filename:
             return no_update
 
-        # Получаем trace данные из кеша
         cache = get_trace_cache()
         trace_data = cache.compute_trace_data(filename, slider_value)
 
-        # Используем Patch для частичного обновления figure
         patched_fig = Patch()
 
-        # Реализация Active-Track: Авто-скролл нижних графиков (ask prices + btc price + lag)
+        # Active-Track: авто-скролл ask prices
         if active_track and 'enabled' in active_track:
-            # Используем значение из слайдера zoom_level (по умолчанию 150)
             half_window = zoom_level if zoom_level else 150
             x_min = max(0, slider_value - half_window)
             x_max = slider_value + half_window
-            patched_fig['layout']['xaxis3']['range'] = [x_min, x_max]  # Ask prices chart
-            patched_fig['layout']['xaxis4']['range'] = [x_min, x_max]  # BTC price chart
-            patched_fig['layout']['xaxis5']['range'] = [x_min, x_max]  # Lag chart
+            patched_fig['layout']['xaxis3']['range'] = [x_min, x_max]  # Ask prices chart (row 2)
 
-        # Обновляем UP Bids (trace 0)
+        # UP Bids (trace 0)
         patched_fig['data'][0]['y'] = trace_data['up_bids']['y']
         patched_fig['data'][0]['x'] = trace_data['up_bids']['x']
         patched_fig['data'][0]['text'] = trace_data['up_bids']['text']
         patched_fig['data'][0]['marker']['color'] = trace_data['up_bids']['colors']
 
-        # Обновляем UP Asks (trace 1)
+        # UP Asks (trace 1)
         patched_fig['data'][1]['y'] = trace_data['up_asks']['y']
         patched_fig['data'][1]['x'] = trace_data['up_asks']['x']
         patched_fig['data'][1]['text'] = trace_data['up_asks']['text']
         patched_fig['data'][1]['marker']['color'] = trace_data['up_asks']['colors']
 
-        # Обновляем DOWN Bids (trace 2)
+        # DOWN Bids (trace 2)
         patched_fig['data'][2]['y'] = trace_data['down_bids']['y']
         patched_fig['data'][2]['x'] = trace_data['down_bids']['x']
         patched_fig['data'][2]['text'] = trace_data['down_bids']['text']
         patched_fig['data'][2]['marker']['color'] = trace_data['down_bids']['colors']
 
-        # Обновляем DOWN Asks (trace 3)
+        # DOWN Asks (trace 3)
         patched_fig['data'][3]['y'] = trace_data['down_asks']['y']
         patched_fig['data'][3]['x'] = trace_data['down_asks']['x']
         patched_fig['data'][3]['text'] = trace_data['down_asks']['text']
         patched_fig['data'][3]['marker']['color'] = trace_data['down_asks']['colors']
 
-        # Обновляем позицию маркера на Ask Prices графике (trace 6 - Current UP Ask)
+        # Current UP Ask marker (trace 6)
         patched_fig['data'][6]['x'] = trace_data['up_ask_price_x']
         patched_fig['data'][6]['y'] = trace_data['up_ask_price_y']
 
-        # Обновляем позицию маркера на Ask Prices графике (trace 7 - Current DOWN Ask)
+        # Current DOWN Ask marker (trace 7)
         patched_fig['data'][7]['x'] = trace_data['down_ask_price_x']
         patched_fig['data'][7]['y'] = trace_data['down_ask_price_y']
 
-        # Обновляем позицию маркера на BTC ценовом графике (trace 11 - Current Binance)
-        patched_fig['data'][11]['x'] = trace_data['binance_price_x']
-        patched_fig['data'][11]['y'] = trace_data['binance_price_y']
-
-        # Обновляем позицию маркера Oracle на BTC ценовом графике (trace 12 - Current Oracle)
-        patched_fig['data'][12]['x'] = trace_data['oracle_price_x']
-        patched_fig['data'][12]['y'] = trace_data['oracle_price_y']
-
-        # Обновляем позицию маркера на lag графике (trace 14 - Current Lag)
-        patched_fig['data'][14]['x'] = trace_data['lag_x']
-        patched_fig['data'][14]['y'] = trace_data['lag_y']
-
-        # Формируем заголовок
+        # Заголовок
         title_text = (
             f"Orderbook @ {trace_data['timestamp']}<br>" +
             f"<sub>UP: {trace_data['up_pressure']} pressure " +
@@ -363,90 +357,130 @@ def register_callbacks(app):
 
         return patched_fig
 
-    # Callback 5: Динамическое управление FPS (частота обновления)
+    # ========================================
+    # Callback 4b: Обновление BTC графика через Patch
+    # ========================================
+    #
+    # Trace indices in btc chart (create_btc_popout_figure):
+    #   0: Binance BTC line
+    #   1: Oracle BTC line
+    #   2: Current Binance marker
+    #   3: Current Oracle marker
+    #   4: Lag line
+    #   5: Current Lag marker
+    #
+    @callback(
+        Output('chart-btc', 'figure', allow_duplicate=True),
+        Input('time-slider', 'value'),
+        [
+            State('file-selector', 'value'),
+            State('active-track-checklist', 'value'),
+            State('active-track-zoom-slider', 'value')
+        ],
+        prevent_initial_call=True
+    )
+    def update_btc_on_slider(slider_value, filename, active_track, zoom_level):
+        """Обновить BTC график при изменении позиции слайдера"""
+        if not filename:
+            return no_update
+
+        cache = get_trace_cache()
+        trace_data = cache.compute_trace_data(filename, slider_value)
+
+        patched_fig = Patch()
+
+        # Active-Track: авто-скролл btc price + lag
+        if active_track and 'enabled' in active_track:
+            half_window = zoom_level if zoom_level else 150
+            x_min = max(0, slider_value - half_window)
+            x_max = slider_value + half_window
+            patched_fig['layout']['xaxis']['range'] = [x_min, x_max]   # BTC price (row 1)
+            patched_fig['layout']['xaxis2']['range'] = [x_min, x_max]  # Lag (row 2)
+
+        # Current Binance marker (trace 2)
+        patched_fig['data'][2]['x'] = trace_data['binance_price_x']
+        patched_fig['data'][2]['y'] = trace_data['binance_price_y']
+
+        # Current Oracle marker (trace 3)
+        patched_fig['data'][3]['x'] = trace_data['oracle_price_x']
+        patched_fig['data'][3]['y'] = trace_data['oracle_price_y']
+
+        # Current Lag marker (trace 5)
+        patched_fig['data'][5]['x'] = trace_data['lag_x']
+        patched_fig['data'][5]['y'] = trace_data['lag_y']
+
+        # Заголовок BTC
+        patched_fig['layout']['title']['text'] = f"BTC Price & Lag @ {trace_data['timestamp']}"
+
+        return patched_fig
+
+    # ========================================
+    # Callback 5: Динамическое управление FPS
+    # ========================================
     @callback(
         Output('playback-interval', 'interval'),
         Input('fps-selector', 'value')
     )
     def update_fps(interval_ms):
-        """Изменить частоту обновления UI на основе выбора пользователя"""
+        """Изменить частоту обновления UI"""
         return interval_ms
 
-    # Callback 6: Синхронизация осей при зуме/панорамировании
+    # ========================================
+    # Callback 6a: Синхронизация осей Orderbook chart
+    # ========================================
+    # В orderbook chart (2-row, 2-col): xaxis3 = Ask prices (row 2, col 1)
+    # Нет других timeseries осей для синхронизации внутри этого чарта.
+
+    # ========================================
+    # Callback 6b: Синхронизация осей BTC chart
+    # ========================================
+    # В btc chart (2-row, 1-col): xaxis = BTC price (row 1), xaxis2 = Lag (row 2)
     @callback(
-        Output('main-chart', 'figure', allow_duplicate=True),
-        Input('main-chart', 'relayoutData'),
+        Output('chart-btc', 'figure', allow_duplicate=True),
+        Input('chart-btc', 'relayoutData'),
         State('active-track-checklist', 'value'),
         prevent_initial_call=True
     )
-    def sync_chart_axes(relayout_data, active_track):
-        """Синхронизация осей xaxis3 (ask prices), xaxis4 (btc price) и xaxis5 (lag) при зуме"""
-        # Пропустить если active-track включен (он сам управляет диапазоном)
+    def sync_btc_chart_axes(relayout_data, active_track):
+        """Синхронизация осей xaxis (btc) и xaxis2 (lag) при зуме"""
         if active_track and 'enabled' in active_track:
             return no_update
-
         if not relayout_data:
             return no_update
 
         patched_fig = Patch()
 
-        # Зум на ask prices chart (xaxis3) -> обновить btc price и lag chart
-        if 'xaxis3.range[0]' in relayout_data and 'xaxis3.range[1]' in relayout_data:
-            patched_fig['layout']['xaxis4']['range'] = [
-                relayout_data['xaxis3.range[0]'],
-                relayout_data['xaxis3.range[1]']
-            ]
-            patched_fig['layout']['xaxis5']['range'] = [
-                relayout_data['xaxis3.range[0]'],
-                relayout_data['xaxis3.range[1]']
+        # Зум на BTC price (xaxis) -> обновить lag
+        if 'xaxis.range[0]' in relayout_data and 'xaxis.range[1]' in relayout_data:
+            patched_fig['layout']['xaxis2']['range'] = [
+                relayout_data['xaxis.range[0]'],
+                relayout_data['xaxis.range[1]']
             ]
             return patched_fig
 
-        # Зум на btc price chart (xaxis4) -> обновить ask prices и lag chart
-        if 'xaxis4.range[0]' in relayout_data and 'xaxis4.range[1]' in relayout_data:
-            patched_fig['layout']['xaxis3']['range'] = [
-                relayout_data['xaxis4.range[0]'],
-                relayout_data['xaxis4.range[1]']
-            ]
-            patched_fig['layout']['xaxis5']['range'] = [
-                relayout_data['xaxis4.range[0]'],
-                relayout_data['xaxis4.range[1]']
+        # Зум на Lag (xaxis2) -> обновить btc price
+        if 'xaxis2.range[0]' in relayout_data and 'xaxis2.range[1]' in relayout_data:
+            patched_fig['layout']['xaxis']['range'] = [
+                relayout_data['xaxis2.range[0]'],
+                relayout_data['xaxis2.range[1]']
             ]
             return patched_fig
 
-        # Зум на lag chart (xaxis5) -> обновить ask prices и btc price chart
-        if 'xaxis5.range[0]' in relayout_data and 'xaxis5.range[1]' in relayout_data:
-            patched_fig['layout']['xaxis3']['range'] = [
-                relayout_data['xaxis5.range[0]'],
-                relayout_data['xaxis5.range[1]']
-            ]
-            patched_fig['layout']['xaxis4']['range'] = [
-                relayout_data['xaxis5.range[0]'],
-                relayout_data['xaxis5.range[1]']
-            ]
+        # Сброс зума на BTC price
+        if 'xaxis.autorange' in relayout_data:
+            patched_fig['layout']['xaxis2']['autorange'] = True
             return patched_fig
 
-        # Сброс зума (двойной клик) на ask prices chart
-        if 'xaxis3.autorange' in relayout_data:
-            patched_fig['layout']['xaxis4']['autorange'] = True
-            patched_fig['layout']['xaxis5']['autorange'] = True
-            return patched_fig
-
-        # Сброс зума (двойной клик) на btc price chart
-        if 'xaxis4.autorange' in relayout_data:
-            patched_fig['layout']['xaxis3']['autorange'] = True
-            patched_fig['layout']['xaxis5']['autorange'] = True
-            return patched_fig
-
-        # Сброс зума (двойной клик) на lag chart
-        if 'xaxis5.autorange' in relayout_data:
-            patched_fig['layout']['xaxis3']['autorange'] = True
-            patched_fig['layout']['xaxis4']['autorange'] = True
+        # Сброс зума на Lag
+        if 'xaxis2.autorange' in relayout_data:
+            patched_fig['layout']['xaxis']['autorange'] = True
             return patched_fig
 
         return no_update
 
-    # Callback 7: Обновление info текста при изменении zoom slider
+    # ========================================
+    # Callback 7: Обновление info текста zoom slider
+    # ========================================
     @callback(
         Output('active-track-zoom-info', 'children'),
         Input('active-track-zoom-slider', 'value')
@@ -455,3 +489,203 @@ def register_callbacks(app):
         """Обновить информационный текст о размере окна"""
         total_window = zoom_level * 2
         return f"Window: ±{zoom_level} rows ({total_window} total)"
+
+    # ========================================
+    # Pop-Out Window Callbacks
+    # ========================================
+
+    # Callback 8: Pop-out buttons — open new tab via clientside callback
+    app.clientside_callback(
+        """
+        function(n_clicks) {
+            if (n_clicks > 0) {
+                window.open(window.location.origin + '/?view=orderbook', '_blank');
+            }
+            return '';
+        }
+        """,
+        Output('_popout-ob-dummy', 'children'),
+        Input('popout-orderbook-btn', 'n_clicks'),
+        prevent_initial_call=True
+    )
+
+    app.clientside_callback(
+        """
+        function(n_clicks) {
+            if (n_clicks > 0) {
+                window.open(window.location.origin + '/?view=btc', '_blank');
+            }
+            return '';
+        }
+        """,
+        Output('_popout-btc-dummy', 'children'),
+        Input('popout-btc-btn', 'n_clicks'),
+        prevent_initial_call=True
+    )
+
+    # Callback 9: Синхронизация slider в localStorage для pop-out окон
+    @callback(
+        Output('shared-slider-value', 'data'),
+        Input('time-slider', 'value'),
+        State('file-selector', 'value'),
+        prevent_initial_call=True
+    )
+    def sync_slider_to_storage(slider_value, filename):
+        """Записать позицию слайдера в localStorage для pop-out окон"""
+        return {
+            'value': slider_value,
+            'filename': filename,
+            'timestamp': int(time.time() * 1000)
+        }
+
+    # Callback 10: Синхронизация файла в localStorage
+    @callback(
+        Output('shared-file-selection', 'data'),
+        Input('file-selector', 'value'),
+        prevent_initial_call=True
+    )
+    def sync_file_to_storage(filename):
+        """Записать выбранный файл в localStorage для pop-out окон"""
+        if not filename:
+            return no_update
+        return {
+            'filename': filename,
+            'timestamp': int(time.time() * 1000)
+        }
+
+    # Callback 14: Router - Render layout based on URL
+    @callback(
+        Output('content-container', 'children'),
+        Input('url', 'search')
+    )
+    def display_page(search):
+        from .layout import create_main_layout, create_orderbook_popout, create_btc_popout
+        
+        # Parse query params manually or use simple string check
+        if search and 'view=orderbook' in search:
+            return create_orderbook_popout()
+        elif search and 'view=btc' in search:
+            return create_btc_popout()
+        else:
+            return create_main_layout()
+
+    # Callback 12: Update Pop-out Chart content
+    @callback(
+        [
+            Output('popout-chart', 'figure'),
+            Output('popout-last-value', 'data')
+        ],
+        Input('popout-sync-interval', 'n_intervals'),
+        [
+            State('shared-slider-value', 'data'),
+            State('shared-file-selection', 'data'),
+            State('popout-last-value', 'data'),
+            State('url', 'search')
+        ]
+    )
+    def update_popout_chart(n, slider_data, file_data, last_value_data, search):
+        """Обновить график в pop-out окне"""
+        if not slider_data:
+            return no_update, no_update
+
+        # Fallback logic: sometimes filename is in slider_data if initializing
+        filename = None
+        if file_data and file_data.get('filename'):
+            filename = file_data.get('filename')
+        elif slider_data.get('filename'):
+             filename = slider_data.get('filename')
+        
+        slider_value = slider_data.get('value', 0)
+        
+        # Optimization: Don't update if value hasn't changed
+        last_val = last_value_data.get('value', -1) if last_value_data else -1
+        # Also check if filename changed, if so force update
+        last_file = last_value_data.get('filename') if last_value_data else None
+
+        if slider_value == last_val and filename == last_file and n > 0:
+            return no_update, no_update
+            
+        if not filename:
+             return no_update, no_update
+
+        # Determine view mode from URL
+        view_mode = 'main'
+        if search and 'view=orderbook' in search:
+            view_mode = 'orderbook'
+        elif search and 'view=btc' in search:
+            view_mode = 'btc'
+            
+        if view_mode == 'main':
+             return no_update, no_update
+
+        # Load data
+        try:
+             df = load_data(filename)
+        except Exception as e:
+             print(f"Error loading data for pop-out: {e}")
+             return no_update, no_update
+
+        fig = no_update
+        if view_mode == 'orderbook':
+             fig = create_orderbook_popout_figure(df, slider_value)
+        elif view_mode == 'btc':
+             fig = create_btc_popout_figure(df, slider_value)
+            
+        # Store current state
+        new_state = {'value': slider_value, 'filename': filename}
+        
+        return fig, new_state
+
+    # Callback 13: Toggle main page charts based on pop-out status
+    @callback(
+        [
+            Output('chart-orderbook-container', 'style'),
+            Output('placeholder-orderbook', 'style'),
+            Output('chart-btc-container', 'style'),
+            Output('placeholder-btc', 'style')
+        ],
+        Input('shared-popout-status', 'data'),
+        prevent_initial_call=False
+    )
+    def toggle_charts_visibility(popout_status):
+        """
+        Скрыть графики на главной странице, если они открыты в pop-out окне.
+        Показать вместо них placeholder.
+        """
+        if not popout_status:
+            return {}, {'display': 'none'}, {}, {'display': 'none'}
+
+        # Стили плейсхолдера
+        visible_placeholder_style = {
+            'display': 'block',
+            'backgroundColor': '#2d2d2d',
+            'border': '2px dashed #555',
+            'borderRadius': '8px',
+            'padding': '40px',
+            'textAlign': 'center',
+            'color': '#888',
+            'fontSize': '18px',
+            'margin': '10px 0'
+        }
+        hidden_placeholder_style = {'display': 'none'}
+        
+        hidden_chart_style = {'display': 'none'}
+        visible_chart_style = {'display': 'block'}
+
+        # Orderbook Visibility
+        if popout_status.get('orderbook'):
+            ob_chart_style = hidden_chart_style
+            ob_placeholder_style = visible_placeholder_style
+        else:
+            ob_chart_style = visible_chart_style
+            ob_placeholder_style = hidden_placeholder_style
+
+        # BTC Visibility
+        if popout_status.get('btc'):
+            btc_chart_style = hidden_chart_style
+            btc_placeholder_style = visible_placeholder_style
+        else:
+            btc_chart_style = visible_chart_style
+            btc_placeholder_style = hidden_placeholder_style
+
+        return ob_chart_style, ob_placeholder_style, btc_chart_style, btc_placeholder_style
