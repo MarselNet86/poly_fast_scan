@@ -297,14 +297,15 @@ def register_callbacks(app):
         # Используем Patch для частичного обновления figure
         patched_fig = Patch()
 
-        # Реализация Active-Track: Авто-скролл нижних графиков (price + lag)
+        # Реализация Active-Track: Авто-скролл нижних графиков (ask prices + btc price + lag)
         if active_track and 'enabled' in active_track:
             # Используем значение из слайдера zoom_level (по умолчанию 150)
             half_window = zoom_level if zoom_level else 150
             x_min = max(0, slider_value - half_window)
             x_max = slider_value + half_window
-            patched_fig['layout']['xaxis3']['range'] = [x_min, x_max]  # Price chart
-            patched_fig['layout']['xaxis4']['range'] = [x_min, x_max]  # Lag chart
+            patched_fig['layout']['xaxis3']['range'] = [x_min, x_max]  # Ask prices chart
+            patched_fig['layout']['xaxis4']['range'] = [x_min, x_max]  # BTC price chart
+            patched_fig['layout']['xaxis5']['range'] = [x_min, x_max]  # Lag chart
 
         # Обновляем UP Bids (trace 0)
         patched_fig['data'][0]['y'] = trace_data['up_bids']['y']
@@ -330,17 +331,25 @@ def register_callbacks(app):
         patched_fig['data'][3]['text'] = trace_data['down_asks']['text']
         patched_fig['data'][3]['marker']['color'] = trace_data['down_asks']['colors']
 
-        # Обновляем позицию маркера на ценовом графике (trace 7 - Current Binance)
-        patched_fig['data'][7]['x'] = trace_data['binance_price_x']
-        patched_fig['data'][7]['y'] = trace_data['binance_price_y']
+        # Обновляем позицию маркера на Ask Prices графике (trace 6 - Current UP Ask)
+        patched_fig['data'][6]['x'] = trace_data['up_ask_price_x']
+        patched_fig['data'][6]['y'] = trace_data['up_ask_price_y']
 
-        # Обновляем позицию маркера Oracle на ценовом графике (trace 8 - Current Oracle)
-        patched_fig['data'][8]['x'] = trace_data['oracle_price_x']
-        patched_fig['data'][8]['y'] = trace_data['oracle_price_y']
+        # Обновляем позицию маркера на Ask Prices графике (trace 7 - Current DOWN Ask)
+        patched_fig['data'][7]['x'] = trace_data['down_ask_price_x']
+        patched_fig['data'][7]['y'] = trace_data['down_ask_price_y']
 
-        # Обновляем позицию маркера на lag графике (trace 10 - Current Lag)
-        patched_fig['data'][10]['x'] = trace_data['lag_x']
-        patched_fig['data'][10]['y'] = trace_data['lag_y']
+        # Обновляем позицию маркера на BTC ценовом графике (trace 11 - Current Binance)
+        patched_fig['data'][11]['x'] = trace_data['binance_price_x']
+        patched_fig['data'][11]['y'] = trace_data['binance_price_y']
+
+        # Обновляем позицию маркера Oracle на BTC ценовом графике (trace 12 - Current Oracle)
+        patched_fig['data'][12]['x'] = trace_data['oracle_price_x']
+        patched_fig['data'][12]['y'] = trace_data['oracle_price_y']
+
+        # Обновляем позицию маркера на lag графике (trace 14 - Current Lag)
+        patched_fig['data'][14]['x'] = trace_data['lag_x']
+        patched_fig['data'][14]['y'] = trace_data['lag_y']
 
         # Формируем заголовок
         title_text = (
@@ -371,7 +380,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def sync_chart_axes(relayout_data, active_track):
-        """Синхронизация осей xaxis3 (price) и xaxis4 (lag) при зуме"""
+        """Синхронизация осей xaxis3 (ask prices), xaxis4 (btc price) и xaxis5 (lag) при зуме"""
         # Пропустить если active-track включен (он сам управляет диапазоном)
         if active_track and 'enabled' in active_track:
             return no_update
@@ -381,30 +390,58 @@ def register_callbacks(app):
 
         patched_fig = Patch()
 
-        # Зум на price chart (xaxis3) -> обновить lag chart (xaxis4)
+        # Зум на ask prices chart (xaxis3) -> обновить btc price и lag chart
         if 'xaxis3.range[0]' in relayout_data and 'xaxis3.range[1]' in relayout_data:
             patched_fig['layout']['xaxis4']['range'] = [
                 relayout_data['xaxis3.range[0]'],
                 relayout_data['xaxis3.range[1]']
             ]
+            patched_fig['layout']['xaxis5']['range'] = [
+                relayout_data['xaxis3.range[0]'],
+                relayout_data['xaxis3.range[1]']
+            ]
             return patched_fig
 
-        # Зум на lag chart (xaxis4) -> обновить price chart (xaxis3)
+        # Зум на btc price chart (xaxis4) -> обновить ask prices и lag chart
         if 'xaxis4.range[0]' in relayout_data and 'xaxis4.range[1]' in relayout_data:
             patched_fig['layout']['xaxis3']['range'] = [
                 relayout_data['xaxis4.range[0]'],
                 relayout_data['xaxis4.range[1]']
             ]
+            patched_fig['layout']['xaxis5']['range'] = [
+                relayout_data['xaxis4.range[0]'],
+                relayout_data['xaxis4.range[1]']
+            ]
             return patched_fig
 
-        # Сброс зума (двойной клик) на price chart
+        # Зум на lag chart (xaxis5) -> обновить ask prices и btc price chart
+        if 'xaxis5.range[0]' in relayout_data and 'xaxis5.range[1]' in relayout_data:
+            patched_fig['layout']['xaxis3']['range'] = [
+                relayout_data['xaxis5.range[0]'],
+                relayout_data['xaxis5.range[1]']
+            ]
+            patched_fig['layout']['xaxis4']['range'] = [
+                relayout_data['xaxis5.range[0]'],
+                relayout_data['xaxis5.range[1]']
+            ]
+            return patched_fig
+
+        # Сброс зума (двойной клик) на ask prices chart
         if 'xaxis3.autorange' in relayout_data:
             patched_fig['layout']['xaxis4']['autorange'] = True
+            patched_fig['layout']['xaxis5']['autorange'] = True
+            return patched_fig
+
+        # Сброс зума (двойной клик) на btc price chart
+        if 'xaxis4.autorange' in relayout_data:
+            patched_fig['layout']['xaxis3']['autorange'] = True
+            patched_fig['layout']['xaxis5']['autorange'] = True
             return patched_fig
 
         # Сброс зума (двойной клик) на lag chart
-        if 'xaxis4.autorange' in relayout_data:
+        if 'xaxis5.autorange' in relayout_data:
             patched_fig['layout']['xaxis3']['autorange'] = True
+            patched_fig['layout']['xaxis4']['autorange'] = True
             return patched_fig
 
         return no_update

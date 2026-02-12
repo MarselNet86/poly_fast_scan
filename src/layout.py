@@ -23,7 +23,7 @@ def create_left_panel():
     """Создать левую панель с графиками"""
     return html.Div([
         # Статический Graph компонент - обновляется только figure
-        dcc.Graph(id='main-chart', style={'height': '900px'}),
+        dcc.Graph(id='main-chart', style={'height': '1100px'}),
     ], style={'flex': '3', 'padding': '20px'})
 
 

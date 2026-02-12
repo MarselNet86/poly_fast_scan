@@ -21,14 +21,14 @@ def add_lag_traces(fig, df, row_idx):
             fillcolor='rgba(255, 193, 7, 0.2)',
             hovertemplate='Lag: $%{y:,.2f}<extra></extra>'
         ),
-        row=3, col=1
+        row=4, col=1
     )
 
     # Нулевая линия
     fig.add_hline(
         y=0, line_dash="solid", line_color="rgba(255,255,255,0.3)",
         line_width=1,
-        row=3, col=1
+        row=4, col=1
     )
 
     # Текущая точка lag
@@ -45,17 +45,17 @@ def add_lag_traces(fig, df, row_idx):
             showlegend=False,
             visible=True
         ),
-        row=3, col=1
+        row=4, col=1
     )
 
     # Вертикальная линия текущей позиции
-    fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=3, col=1)
+    fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=4, col=1)
 
     # Настройка осей
     fig.update_xaxes(
         title_text="Timeline",
-        row=3, col=1,
+        row=4, col=1,
         gridcolor='#444',
-        matches='x3'  # Связать с xaxis3 (price chart) для синхронного зума
+        matches='x4'  # Связать с xaxis4 (btc price chart) для синхронного зума
     )
-    fig.update_yaxes(title_text="Lag ($)", row=3, col=1, gridcolor='#444')
+    fig.update_yaxes(title_text="Lag ($)", row=4, col=1, gridcolor='#444')

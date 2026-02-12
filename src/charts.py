@@ -16,6 +16,7 @@ from .data_loader import (
 )
 from .config import BAR_SCALE_COEFF
 from .widgets.orderbook import add_orderbook_traces
+from .widgets.ask_prices_chart import add_ask_prices_traces
 from .widgets.btc_chart import add_btc_traces
 from .widgets.lag_chart import add_lag_traces
 
@@ -45,15 +46,16 @@ def create_orderbook_figure(df, row_idx):
     range_data = calculate_orderbook_range(df)
     global_max = range_data['max_size']
     
-    # Создаем фигуру с тремя рядами: стаканы, цена, lag
+    # Создаем фигуру с четырьмя рядами: стаканы, ask prices, btc price, lag
     fig = make_subplots(
-        rows=3, cols=2,
-        subplot_titles=('UP Contract Orderbook', 'DOWN Contract Orderbook', '', '', '', ''),
+        rows=4, cols=2,
+        subplot_titles=('UP Contract Orderbook', 'DOWN Contract Orderbook', '', '', '', '', '', ''),
         horizontal_spacing=0.12,
-        vertical_spacing=0.08,
-        row_heights=[0.45, 0.35, 0.20],
+        vertical_spacing=0.06,
+        row_heights=[0.40, 0.20, 0.25, 0.15],
         specs=[
             [{"type": "bar"}, {"type": "bar"}],
+            [{"type": "scatter", "colspan": 2}, None],
             [{"type": "scatter", "colspan": 2}, None],
             [{"type": "scatter", "colspan": 2}, None]
         ]
@@ -61,6 +63,7 @@ def create_orderbook_figure(df, row_idx):
 
     # Добавляем виджеты
     add_orderbook_traces(fig, data, anomaly_threshold, global_max)
+    add_ask_prices_traces(fig, df, row_idx)
     add_btc_traces(fig, df, row_idx)
     add_lag_traces(fig, df, row_idx)
 
@@ -82,7 +85,7 @@ def create_orderbook_figure(df, row_idx):
         barmode='overlay',
         bargap=0.2,
         bargroupgap=0.1,
-        height=900,
+        height=1100,
         showlegend=True,
         legend=dict(orientation='h', yanchor='top', y=-0.15, xanchor='center', x=0.5),
         paper_bgcolor='#1e1e1e',

@@ -17,7 +17,7 @@ def add_btc_traces(fig, df, row_idx):
             line=dict(color='#FF6B00', width=2),
             hovertemplate='Binance: $%{y:,.2f}<extra></extra>'
         ),
-        row=2, col=1
+        row=3, col=1
     )
 
     # 2. VWAP 30s - серая пунктирная линия
@@ -31,7 +31,7 @@ def add_btc_traces(fig, df, row_idx):
             line=dict(color='#888', width=1, dash='dot'),
             hovertemplate='VWAP: $%{y:,.2f}<extra></extra>'
         ),
-        row=2, col=1
+        row=3, col=1
     )
 
     # 3. Oracle BTC - синяя линия
@@ -45,7 +45,7 @@ def add_btc_traces(fig, df, row_idx):
             line=dict(color='#2196F3', width=2),
             hovertemplate='Oracle: $%{y:,.2f}<extra></extra>'
         ),
-        row=2, col=1
+        row=3, col=1
     )
 
     # 4. Strike price - первая не-NaN цена oracle
@@ -56,7 +56,7 @@ def add_btc_traces(fig, df, row_idx):
             annotation_text=f"Strike: ${first_oracle:,.0f}",
             annotation_position="right",
             annotation_font_color="white",
-            row=2, col=1
+            row=3, col=1
         )
 
     # 5. Текущая точка Binance
@@ -72,7 +72,7 @@ def add_btc_traces(fig, df, row_idx):
             showlegend=False,
             visible=True
         ),
-        row=2, col=1
+        row=3, col=1
     )
 
     # 6. Текущая точка Oracle
@@ -88,12 +88,17 @@ def add_btc_traces(fig, df, row_idx):
             showlegend=False,
             visible=True
         ),
-        row=2, col=1
+        row=3, col=1
     )
 
     # Вертикальная линия текущей позиции
-    fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=2, col=1)
+    fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=3, col=1)
 
     # Настройка осей
-    fig.update_xaxes(title_text="Timeline", row=2, col=1, gridcolor='#444')
-    fig.update_yaxes(title_text="BTC Price ($)", row=2, col=1, gridcolor='#444')
+    fig.update_xaxes(
+        title_text="Timeline",
+        row=3, col=1,
+        gridcolor='#444',
+        matches='x3'  # Связать с xaxis3 (ask prices chart) для синхронного зума
+    )
+    fig.update_yaxes(title_text="BTC Price ($)", row=3, col=1, gridcolor='#444')
