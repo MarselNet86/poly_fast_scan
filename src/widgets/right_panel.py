@@ -99,32 +99,8 @@ def create_performance_settings():
                 clearable=False,
                 style={'marginBottom': '15px'}
             ),
-        ]),
-
-        # Buffer Settings
-        html.Div([
-            html.Label("Buffer size (frames ahead):", style={'color': 'white', 'fontSize': '12px'}),
-            dcc.Slider(
-                id='buffer-size-slider',
-                min=10,
-                max=200,
-                step=10,
-                value=50,
-                marks={
-                    10: {'label': '10', 'style': {'color': 'white'}},
-                    50: {'label': '50', 'style': {'color': 'white'}},
-                    100: {'label': '100', 'style': {'color': 'white'}},
-                    150: {'label': '150', 'style': {'color': 'white'}},
-                    200: {'label': '200', 'style': {'color': 'white'}}
-                },
-                tooltip={"placement": "bottom", "always_visible": True}
-            ),
-            html.Div(id='buffer-status', style={
-                'color': 'white',
-                'fontSize': '11px',
-                'marginTop': '10px'
-            })
         ])
+        # Buffer Settings УДАЛЕНЫ - buffering теперь в JS (playback_engine.js)
     ])
 
 

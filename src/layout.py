@@ -128,14 +128,26 @@ def create_main_layout():
             'speed': 1
         }),
         dcc.Store(id='cumulative-times', data=[]),
+
+        # НОВЫЕ STORES для clientside playback
+        dcc.Store(id='playback-chunk-request', data=None),  # JS → Server
+        dcc.Store(id='playback-chunk-data', data=None),     # Server → JS
+
+        # Отключить interval (оставить disabled=True всегда)
         dcc.Interval(
             id='playback-interval',
             interval=100,  # 100ms = 10 FPS
             n_intervals=0,
-            disabled=True
+            disabled=True  # Навсегда отключен для clientside playback
         ),
         # Shared stores для cross-tab sync
         *create_shared_stores(),
+
+        # Dummy divs для clientside callbacks
+        html.Div(id='_chunk-receiver-dummy', style={'display': 'none'}),
+        html.Div(id='_playback-trigger-dummy', style={'display': 'none'}),
+        html.Div(id='_playback-engine-dummy', style={'display': 'none'}),
+
         # Dummy divs для clientside callback outputs (pop-out buttons)
         html.Div(id='_popout-ob-dummy', style={'display': 'none'}),
         html.Div(id='_popout-btc-dummy', style={'display': 'none'}),
