@@ -8,6 +8,52 @@ from ..data_loader import get_csv_files
 from .active_track import create_active_track_widget
 
 
+def create_playback_controls():
+    """Создать панель управления воспроизведением"""
+    return html.Div([
+        html.Hr(style={'borderColor': '#444'}),
+        html.H3("Playback", style={'color': 'white'}),
+        html.Div([
+            html.Button(
+                id='play-pause-btn',
+                children='▶ Play',
+                n_clicks=0,
+                style={
+                    'backgroundColor': '#4CAF50',
+                    'color': 'white',
+                    'border': 'none',
+                    'padding': '10px 24px',
+                    'fontSize': '16px',
+                    'cursor': 'pointer',
+                    'borderRadius': '4px',
+                    'marginRight': '15px',
+                    'minWidth': '100px'
+                }
+            ),
+            html.Label("Speed: ", style={'color': 'white', 'marginRight': '10px'}),
+            dcc.Dropdown(
+                id='speed-selector',
+                options=[
+                    {'label': 'x1 (Real-time)', 'value': 1},
+                    {'label': 'x2', 'value': 2},
+                    {'label': 'x4', 'value': 4},
+                ],
+                value=1,
+                clearable=False,
+                style={'width': '120px', 'display': 'inline-block', 'verticalAlign': 'middle'}
+            ),
+        ], style={
+            'display': 'flex',
+            'alignItems': 'center',
+            'marginBottom': '10px'
+        }),
+        html.Div(id='playback-status', style={
+            'color': 'white',
+            'fontSize': '12px'
+        })
+    ])
+
+
 def create_file_selector():
     """Создать селектор файлов"""
     files = get_csv_files()
@@ -35,7 +81,7 @@ def create_performance_settings():
     """Создать панель настроек производительности"""
     return html.Div([
         html.Hr(style={'borderColor': '#444'}),
-        html.H3("Performance Settings", style={'color': 'white'}),
+        html.H3("Performance", style={'color': 'white'}),
 
         # FPS Settings
         html.Div([
@@ -57,18 +103,24 @@ def create_performance_settings():
 
         # Buffer Settings
         html.Div([
-            html.Label("Buffer size (frames ahead):", style={'color': '#aaa', 'fontSize': '12px'}),
+            html.Label("Buffer size (frames ahead):", style={'color': 'white', 'fontSize': '12px'}),
             dcc.Slider(
                 id='buffer-size-slider',
                 min=10,
                 max=200,
                 step=10,
                 value=50,
-                marks={10: '10', 50: '50', 100: '100', 150: '150', 200: '200'},
+                marks={
+                    10: {'label': '10', 'style': {'color': 'white'}},
+                    50: {'label': '50', 'style': {'color': 'white'}},
+                    100: {'label': '100', 'style': {'color': 'white'}},
+                    150: {'label': '150', 'style': {'color': 'white'}},
+                    200: {'label': '200', 'style': {'color': 'white'}}
+                },
                 tooltip={"placement": "bottom", "always_visible": True}
             ),
             html.Div(id='buffer-status', style={
-                'color': '#888',
+                'color': 'white',
                 'fontSize': '11px',
                 'marginTop': '10px'
             })
@@ -98,8 +150,9 @@ def create_right_panel():
     return html.Div([
         create_file_selector(),
         create_file_info_panel(),
-        create_performance_settings(),
+        create_playback_controls(),
         create_time_slider(),
+        create_performance_settings(),
         create_active_track_widget(),
     ], style={
         'flex': '1',

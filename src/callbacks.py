@@ -88,8 +88,12 @@ def register_callbacks(app):
         cumulative_times = compute_cumulative_times(df)
 
         max_val = len(df) - 1
-        step = max(1, max_val // 10)
-        marks = {i: str(i) for i in range(0, max_val + 1, step)}
+        # Создаем только 5 меток для лучшей читаемости
+        step = max(1, max_val // 4)
+        marks = {
+            i: {'label': str(i), 'style': {'color': 'white'}}
+            for i in range(0, max_val + 1, step)
+        }
 
         file_info = html.Div([
             html.P(f"File: {info['filename']}", style={'margin': '5px 0'}),

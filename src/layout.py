@@ -19,58 +19,11 @@ def create_header():
     })
 
 
-def create_playback_controls():
-    """Создать панель управления воспроизведением"""
-    return html.Div([
-        html.Div([
-            html.Button(
-                id='play-pause-btn',
-                children='▶ Play',
-                n_clicks=0,
-                style={
-                    'backgroundColor': '#4CAF50',
-                    'color': 'white',
-                    'border': 'none',
-                    'padding': '10px 24px',
-                    'fontSize': '16px',
-                    'cursor': 'pointer',
-                    'borderRadius': '4px',
-                    'marginRight': '15px',
-                    'minWidth': '100px'
-                }
-            ),
-            html.Label("Speed: ", style={'color': 'white', 'marginRight': '10px'}),
-            dcc.Dropdown(
-                id='speed-selector',
-                options=[
-                    {'label': 'x1 (Real-time)', 'value': 1},
-                    {'label': 'x2', 'value': 2},
-                    {'label': 'x4', 'value': 4},
-                ],
-                value=1,
-                clearable=False,
-                style={'width': '150px', 'display': 'inline-block', 'verticalAlign': 'middle'}
-            ),
-        ], style={
-            'display': 'flex',
-            'alignItems': 'center',
-            'justifyContent': 'center',
-            'marginBottom': '10px'
-        }),
-        html.Div(id='playback-status', style={
-            'color': '#888',
-            'textAlign': 'center',
-            'fontSize': '12px'
-        })
-    ], style={'padding': '10px 20px'})
-
-
 def create_left_panel():
     """Создать левую панель с графиками"""
     return html.Div([
         # Статический Graph компонент - обновляется только figure
         dcc.Graph(id='main-chart', style={'height': '900px'}),
-        create_playback_controls()
     ], style={'flex': '3', 'padding': '20px'})
 
 

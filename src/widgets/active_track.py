@@ -19,14 +19,14 @@ def create_active_track_widget():
                 {'label': ' Enable (Follow Price)', 'value': 'enabled'}
             ],
             value=[],  # По умолчанию выключено
-            style={'color': '#aaa', 'fontSize': '14px', 'marginBottom': '10px'}
+            style={'color': 'white', 'fontSize': '14px', 'marginBottom': '10px'}
         ),
 
         # Слайдер масштаба (размер окна)
         html.Div([
             html.Label(
                 "Zoom Level (window size):",
-                style={'color': '#aaa', 'fontSize': '12px', 'marginBottom': '5px'}
+                style={'color': 'white', 'fontSize': '12px', 'marginBottom': '5px'}
             ),
             dcc.Slider(
                 id='active-track-zoom-slider',
@@ -35,23 +35,18 @@ def create_active_track_widget():
                 step=50,
                 value=150,  # По умолчанию 150 (300 строк всего: ±150)
                 marks={
-                    50: '50',
-                    500: '500',
-                    1000: '1k',
-                    2500: '2.5k',
-                    5000: '5k'
+                    50: {'label': '50', 'style': {'color': 'white'}},
+                    500: {'label': '500', 'style': {'color': 'white'}},
+                    1000: {'label': '1k', 'style': {'color': 'white'}},
+                    2500: {'label': '2.5k', 'style': {'color': 'white'}},
+                    5000: {'label': '5k', 'style': {'color': 'white'}}
                 },
                 tooltip={"placement": "bottom", "always_visible": True}
             ),
             html.P(
                 id='active-track-zoom-info',
                 children="Window: ±150 rows (300 total)",
-                style={'color': '#666', 'fontSize': '11px', 'marginTop': '5px'}
+                style={'color': 'white', 'fontSize': '11px', 'marginTop': '5px'}
             )
         ], style={'marginTop': '10px'}),
-
-        html.P(
-            "Auto-scroll charts to follow current position",
-            style={'color': '#666', 'fontSize': '11px', 'marginTop': '10px'}
-        )
     ], style={'paddingBottom': '10px'})

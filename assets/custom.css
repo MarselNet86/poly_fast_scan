@@ -1,0 +1,135 @@
+/* Стилизация ползунков (sliders) */
+
+/* Фиолетовый цвет для активного трека слайдера */
+.rc-slider-track,
+div.rc-slider-track {
+    background-color: #9c27b0 !important;  /* Фиолетовый */
+    background: #9c27b0 !important;
+}
+
+/* Фиолетовый цвет для ручки слайдера */
+.rc-slider-handle,
+div.rc-slider-handle {
+    border-color: #9c27b0 !important;  /* Фиолетовый */
+    background-color: #9c27b0 !important;  /* Фиолетовый */
+    background: #9c27b0 !important;
+}
+
+/* Подсветка ручки при наведении */
+.rc-slider-handle:hover,
+.rc-slider-handle:active,
+.rc-slider-handle:focus,
+div.rc-slider-handle:hover,
+div.rc-slider-handle:active,
+div.rc-slider-handle:focus {
+    border-color: #ba68c8 !important;  /* Светло-фиолетовый */
+    background-color: #ba68c8 !important;  /* Светло-фиолетовый */
+    background: #ba68c8 !important;
+    box-shadow: 0 0 5px rgba(156, 39, 176, 0.5) !important;
+}
+
+/* Белый цвет для меток (marks) на слайдере */
+.rc-slider-mark-text,
+span.rc-slider-mark-text {
+    color: white !important;
+    font-size: 11px !important;
+}
+
+/* Белый цвет для тултипа */
+.rc-slider-tooltip-inner,
+div.rc-slider-tooltip-inner {
+    background-color: #9c27b0 !important;  /* Фиолетовый фон */
+    background: #9c27b0 !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+.rc-slider-tooltip-arrow {
+    border-top-color: #9c27b0 !important;
+}
+
+/* Ярко-фиолетовый цвет для неактивной части слайдера (rail) */
+.rc-slider-rail,
+div.rc-slider-rail {
+    background-color: #7b1fa2 !important;  /* Ярко-фиолетовый */
+    background: #7b1fa2 !important;
+}
+
+/* Переопределение для всех возможных состояний */
+.rc-slider .rc-slider-track {
+    background-color: #9c27b0 !important;
+    background: #9c27b0 !important;
+    background-image: none !important;
+}
+
+.rc-slider .rc-slider-rail {
+    background-color: #7b1fa2 !important;  /* Ярко-фиолетовый */
+    background: #7b1fa2 !important;
+    background-image: none !important;
+}
+
+.rc-slider .rc-slider-handle {
+    border-color: #9c27b0 !important;
+    background-color: #9c27b0 !important;
+    background: #9c27b0 !important;
+    background-image: none !important;
+}
+
+/* Специфичные стили для dcc.Slider */
+._dash-undo-redo .rc-slider-track,
+._dash-loading .rc-slider-track {
+    background-color: #9c27b0 !important;
+    background: #9c27b0 !important;
+}
+
+/* Убираем все возможные синие цвета */
+.rc-slider-track,
+.rc-slider .rc-slider-track,
+div[class*="rc-slider"] .rc-slider-track {
+    background: #9c27b0 !important;
+    background-color: #9c27b0 !important;
+    background-image: none !important;
+}
+
+/* Убираем синий у ручки */
+.rc-slider-handle,
+.rc-slider .rc-slider-handle,
+div[class*="rc-slider"] .rc-slider-handle {
+    background: #9c27b0 !important;
+    background-color: #9c27b0 !important;
+    background-image: none !important;
+    border-color: #9c27b0 !important;
+}
+
+/* Белый цвет для точек (dots) на слайдере */
+.rc-slider-dot,
+span.rc-slider-dot {
+    border-color: #888 !important;
+    background-color: #888 !important;
+}
+
+.rc-slider-dot-active,
+span.rc-slider-dot-active {
+    border-color: #9c27b0 !important;
+    background-color: #9c27b0 !important;
+}
+
+/* Стилизация чекбоксов (Checklist) */
+.dash-checklist label,
+.dash-checklist span,
+div[id*="checklist"] label,
+div[id*="checklist"] span {
+    color: white !important;
+}
+
+/* Специфично для active-track чекбокса */
+#active-track-checklist label,
+#active-track-checklist span,
+#active-track-checklist {
+    color: white !important;
+}
+
+/* Стилизация самого чекбокса */
+.dash-checklist input[type="checkbox"] {
+    accent-color: #9c27b0;  /* Фиолетовый цвет для галочки */
+}
