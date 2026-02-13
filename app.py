@@ -10,7 +10,7 @@ from src.callbacks import register_callbacks
 
 def create_app():
     """Создать и настроить Dash приложение"""
-    app = Dash(__name__)
+    app = Dash(__name__, suppress_callback_exceptions=True)
     app.title = "xDaimon FastScan"
 
     # Главный layout

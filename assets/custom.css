@@ -133,3 +133,13 @@ div[id*="checklist"] span {
 .dash-checklist input[type="checkbox"] {
     accent-color: #9c27b0;  /* Фиолетовый цвет для галочки */
 }
+
+/* Market Header Animation - пульсация для критической зоны */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}

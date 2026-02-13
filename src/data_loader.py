@@ -44,7 +44,9 @@ def get_orderbook_data(row):
             'ask_prices': [row.get(f'down_ask_{i}_price', np.nan) for i in range(1, 6)],
             'ask_sizes': [row.get(f'down_ask_{i}_size', np.nan) for i in range(1, 6)],
         },
-        'timestamp': row.get('timestamp_et', row.get('timestamp_ms', 'N/A'))
+        'timestamp': row.get('timestamp_et', row.get('timestamp_ms', 'N/A')),
+        'seconds_till_end': row.get('seconds_till_end', None),
+        'time_till_end': row.get('time_till_end', '--:--')
     }
     return data
 

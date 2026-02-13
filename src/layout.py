@@ -5,18 +5,24 @@ Layout Module
 
 from dash import html, dcc
 from .widgets.right_panel import create_right_panel
+from .widgets.market_header import create_market_header
 
 
 def create_header():
-    """Создать шапку приложения"""
+    """Создать шапку приложения с информационной панелью статуса рынка"""
     return html.Div([
-        html.H1("xDaimon FastScan", style={'margin': '0', 'color': 'white'}),
-        html.P("Polymarket UP/DOWN Contract Orderbook Analysis", style={'color': '#888', 'margin': '5px 0 0 0'})
-    ], style={
-        'padding': '20px',
-        'backgroundColor': '#1e1e1e',
-        'borderBottom': '1px solid #444'
-    })
+        # Название приложения
+        html.Div([
+            html.H1("xDaimon FastScan", style={'margin': '0', 'color': 'white'}),
+            html.P("Polymarket UP/DOWN Contract Orderbook Analysis", style={'color': '#888', 'margin': '5px 0 0 0'})
+        ], style={
+            'padding': '20px',
+            'backgroundColor': '#1e1e1e',
+            'borderBottom': '1px solid #444'
+        }),
+        # Market Header - информационная панель
+        create_market_header()
+    ])
 
 
 def create_left_panel():

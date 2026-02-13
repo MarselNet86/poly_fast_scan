@@ -84,6 +84,8 @@ def extract_trace_data(df: pd.DataFrame, row_idx: int) -> Dict:
             'colors': get_colors(ob_data['down']['ask_sizes'], 'rgba(244, 67, 54, 0.7)', 'rgba(255, 100, 100, 1)')
         },
         'timestamp': ob_data['timestamp'],
+        'seconds_till_end': ob_data['seconds_till_end'],
+        'time_till_end': ob_data['time_till_end'],
         'row_idx': row_idx,
         'up_pressure': up_pressure,
         'up_bid_total': up_bid_total,
