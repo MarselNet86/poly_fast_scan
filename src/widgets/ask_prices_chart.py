@@ -83,5 +83,5 @@ def add_ask_prices_traces(fig, df, row_idx):
     fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=2, col=1)
 
     # Настройка осей
-    fig.update_xaxes(title_text="Timeline", row=2, col=1, gridcolor='#444')
-    fig.update_yaxes(title_text="Contract Price ($)", row=2, col=1, gridcolor='#444')
+    fig.update_xaxes(row=2, col=1, gridcolor='#444')
+    fig.update_yaxes(row=2, col=1, gridcolor='#444')

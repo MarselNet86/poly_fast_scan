@@ -5,38 +5,32 @@ Layout Module
 
 from dash import html, dcc
 from .widgets.right_panel import create_right_panel
-from .widgets.market_header import create_market_header
 
 
 def create_header():
-    """Создать шапку приложения с информационной панелью статуса рынка"""
+    """Создать шапку приложения"""
     return html.Div([
-        # Название приложения
-        html.Div([
-            html.H1("xDaimon FastScan", style={'margin': '0', 'color': 'white'}),
-            html.P("Polymarket UP/DOWN Contract Orderbook Analysis", style={'color': '#888', 'margin': '5px 0 0 0'})
-        ], style={
-            'padding': '20px',
-            'backgroundColor': '#1e1e1e',
-            'borderBottom': '1px solid #444'
-        }),
-        # Market Header - информационная панель
-        create_market_header()
-    ])
+        html.H1("xDaimon FastScan", style={'margin': '0', 'color': 'white'}),
+        html.P("Polymarket UP/DOWN Contract Orderbook Analysis", style={'color': '#888', 'margin': '5px 0 0 0'})
+    ], style={
+        'padding': '20px',
+        'backgroundColor': '#1e1e1e',
+        'borderBottom': '1px solid #444'
+    })
 
 
 def create_left_panel():
     """Создать левую панель с тремя независимыми графиками"""
     return html.Div([
         # Orderbook chart (UP/DOWN orderbook + Ask prices)
-        dcc.Graph(id='chart-orderbook', style={'height': '550px'}),
+        dcc.Graph(id='chart-orderbook', style={'height': '700px', 'width': '100%'}),
 
         # BTC chart (BTC Price + Lag)
-        dcc.Graph(id='chart-btc', style={'height': '450px'}),
+        dcc.Graph(id='chart-btc', style={'height': '700px', 'width': '100%'}),
 
         # Returns chart (Momentum / Returns)
-        dcc.Graph(id='chart-returns', style={'height': '350px'}),
-    ], style={'flex': '3', 'padding': '20px'})
+        dcc.Graph(id='chart-returns', style={'height': '700px', 'width': '100%'}),
+    ], style={'flex': '3', 'padding': '15px'})
 
 
 def create_main_layout():

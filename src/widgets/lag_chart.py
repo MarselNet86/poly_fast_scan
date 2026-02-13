@@ -53,9 +53,8 @@ def add_lag_traces(fig, df, row_idx):
 
     # Настройка осей
     fig.update_xaxes(
-        title_text="Timeline",
         row=4, col=1,
         gridcolor='#444',
         matches='x4'  # Связать с xaxis4 (btc price chart) для синхронного зума
     )
-    fig.update_yaxes(title_text="Lag ($)", row=4, col=1, gridcolor='#444')
+    fig.update_yaxes(row=4, col=1, gridcolor='#444')

@@ -96,9 +96,8 @@ def add_btc_traces(fig, df, row_idx):
 
     # Настройка осей
     fig.update_xaxes(
-        title_text="Timeline",
         row=3, col=1,
         gridcolor='#444',
         matches='x3'  # Связать с xaxis3 (ask prices chart) для синхронного зума
     )
-    fig.update_yaxes(title_text="BTC Price ($)", row=3, col=1, gridcolor='#444')
+    fig.update_yaxes(row=3, col=1, gridcolor='#444')

@@ -8,7 +8,6 @@ from dash import html, callback, Output, Input, State, ctx, no_update, Patch
 from .data_loader import load_data, get_file_info, compute_cumulative_times
 from .charts import create_orderbook_chart, create_btc_chart, create_returns_chart
 from .data_cache import get_data_cache
-from .widgets.market_header import get_phase_color
 
 
 # Стили для кнопки Play/Pause
@@ -231,14 +230,7 @@ def register_callbacks(app):
         patched_fig['data'][7]['y'] = trace_data['down_ask_price_y']
 
         # Заголовок
-        title_text = (
-            f"Orderbook @ {trace_data['timestamp']}<br>" +
-            f"<sub>UP: {trace_data['up_pressure']} pressure " +
-            f"(Bids: ${trace_data['up_bid_total']:,.0f} vs Asks: ${trace_data['up_ask_total']:,.0f}) | " +
-            f"DOWN: {trace_data['down_pressure']} pressure " +
-            f"(Bids: ${trace_data['down_bid_total']:,.0f} vs Asks: ${trace_data['down_ask_total']:,.0f})</sub>"
-        )
-        patched_fig['layout']['title']['text'] = title_text
+        patched_fig['layout']['title']['text'] = "Orderbook"
 
         return patched_fig
 
@@ -301,7 +293,7 @@ def register_callbacks(app):
         patched_fig['data'][5]['y'] = trace_data['lag_y']
 
         # Заголовок BTC
-        patched_fig['layout']['title']['text'] = f"BTC Price & Lag @ {trace_data['timestamp']}"
+        patched_fig['layout']['title']['text'] = "BTC Price & Lag"
 
         return patched_fig
 
@@ -371,7 +363,7 @@ def register_callbacks(app):
             patched_fig['data'][2]['marker']['color'] = point_color
 
         # Заголовок Returns
-        patched_fig['layout']['title']['text'] = f"Returns / Momentum @ {trace_data['timestamp']}"
+        patched_fig['layout']['title']['text'] = "Ret1s & Ret5s"
 
         return patched_fig
 
@@ -573,43 +565,22 @@ def register_callbacks(app):
     )
 
     # ========================================
-    # Callback 9: Update Market Header
+    # Callback 9: Update Market Timer
     # ========================================
     @callback(
         [
-            Output('phase-icon', 'children'),
-            Output('phase-name', 'children'),
-            Output('current-time-et', 'children'),
             Output('countdown-display', 'children'),
-            Output('countdown-seconds', 'children'),
-            Output('market-header-content', 'style')
+            Output('countdown-seconds', 'children')
         ],
         [
             Input('file-selector', 'value'),
             Input('time-slider', 'value')
         ]
     )
-    def update_market_header(filename, row_idx):
-        """Обновить панель статуса рынка на основе текущих данных"""
+    def update_market_timer(filename, row_idx):
+        """Обновить таймер времени до закрытия рынка"""
         if not filename or row_idx is None:
-            # Начальное состояние - серый фон
-            return (
-                '',
-                'No data',
-                '--:--:--',
-                '--:--',
-                '(--- сек)',
-                {
-                    'display': 'flex',
-                    'justifyContent': 'space-between',
-                    'alignItems': 'center',
-                    'padding': '16px 30px',
-                    'backgroundColor': '#2c2c2c',
-                    'color': '#888',
-                    'borderBottom': '2px solid #444',
-                    'transition': 'all 0.3s ease'
-                }
-            )
+            return '--:--', '(--- сек)'
 
         try:
             # Получить данные для текущей строки
@@ -617,58 +588,14 @@ def register_callbacks(app):
             trace_data = cache.compute_trace_data(filename, row_idx)
 
             # Извлечь временные данные
-            timestamp_et = trace_data.get('timestamp', '--:--:--')
             seconds_till_end = trace_data.get('seconds_till_end', None)
             time_till_end = trace_data.get('time_till_end', '--:--')
-
-            # Получить цвет и фазу
-            phase_info = get_phase_color(seconds_till_end)
-
-            # Базовый стиль
-            base_style = {
-                'display': 'flex',
-                'justifyContent': 'space-between',
-                'alignItems': 'center',
-                'padding': '16px 30px',
-                'backgroundColor': phase_info.get('backgroundColor', '#2c2c2c'),
-                'color': phase_info.get('color', '#888'),
-                'borderBottom': '2px solid #444',
-                'transition': 'all 0.3s ease'
-            }
-
-            # Добавить анимацию если есть
-            if 'animation' in phase_info:
-                base_style['animation'] = phase_info['animation']
 
             # Форматировать отображение секунд
             seconds_display = f"({seconds_till_end} сек)" if seconds_till_end is not None else "(--- сек)"
 
-            return (
-                phase_info.get('phaseIcon', ''),
-                phase_info.get('phase', 'No data'),
-                str(timestamp_et),
-                str(time_till_end),
-                seconds_display,
-                base_style
-            )
+            return str(time_till_end), seconds_display
 
         except Exception as e:
-            print(f"Error updating market header: {e}")
-            # Возврат в безопасное состояние при ошибке
-            return (
-                '❌',
-                'Error',
-                '--:--:--',
-                '--:--',
-                '(--- сек)',
-                {
-                    'display': 'flex',
-                    'justifyContent': 'space-between',
-                    'alignItems': 'center',
-                    'padding': '16px 30px',
-                    'backgroundColor': '#2c2c2c',
-                    'color': '#888',
-                    'borderBottom': '2px solid #444',
-                    'transition': 'all 0.3s ease'
-                }
-            )
+            print(f"Error updating market timer: {e}")
+            return '--:--', '(--- сек)'

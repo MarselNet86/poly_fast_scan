@@ -31,7 +31,7 @@ def create_orderbook_chart(df, row_idx):
         go.Figure: Plotly фигура со стаканами и графиком ask prices
     """
     fig = create_orderbook_popout_figure(df, row_idx)
-    fig.update_layout(height=550)
+    fig.update_layout(height=700)
     return fig
 
 
@@ -44,7 +44,7 @@ def create_btc_chart(df, row_idx):
         go.Figure: Plotly фигура с графиками BTC price и lag
     """
     fig = create_btc_popout_figure(df, row_idx)
-    fig.update_layout(height=450)
+    fig.update_layout(height=700)
     return fig
 
 
@@ -56,7 +56,7 @@ def create_returns_chart(df, row_idx):
         go.Figure: Plotly фигура с графиками доходности (Ret1s, Ret5s)
     """
     fig = create_returns_figure(df, row_idx)
-    fig.update_layout(height=350)
+    fig.update_layout(height=700)
     return fig
 
 
@@ -85,7 +85,6 @@ def create_orderbook_popout_figure(df, row_idx):
     # Создаем фигуру с 2 рядами: стаканы и ask prices
     fig = make_subplots(
         rows=2, cols=2,
-        subplot_titles=('UP Contract Orderbook', 'DOWN Contract Orderbook', '', ''),
         horizontal_spacing=0.12,
         vertical_spacing=0.10,
         row_heights=[0.60, 0.40],
@@ -109,12 +108,7 @@ def create_orderbook_popout_figure(df, row_idx):
     )
 
     fig.update_layout(
-        title=dict(
-            text=f"Orderbook @ {data['timestamp']}<br>" +
-                 f"<sub>UP: {up_pressure} (B: ${up_bid_total:,.0f} vs A: ${up_ask_total:,.0f}) | " +
-                 f"DOWN: {down_pressure} (B: ${down_bid_total:,.0f} vs A: ${down_ask_total:,.0f})</sub>",
-            font=dict(size=14)
-        ),
+        title='Orderbook',
         barmode='overlay',
         bargap=0.2,
         bargroupgap=0.1,
@@ -123,7 +117,7 @@ def create_orderbook_popout_figure(df, row_idx):
         paper_bgcolor='#1e1e1e',
         plot_bgcolor='#2d2d2d',
         font=dict(color='white'),
-        margin=dict(t=80, b=60)
+        margin=dict(l=50, r=20, t=60, b=60)
     )
 
     return fig
@@ -143,7 +137,6 @@ def create_btc_popout_figure(df, row_idx):
     # Создаем фигуру с 2 рядами: btc price и lag
     fig = make_subplots(
         rows=2, cols=1,
-        subplot_titles=('BTC Price', 'Price Lag'),
         vertical_spacing=0.12,
         row_heights=[0.65, 0.35]
     )
@@ -154,20 +147,14 @@ def create_btc_popout_figure(df, row_idx):
     # Добавляем lag (row 2)
     _add_lag_for_popout(fig, df, row_idx)
 
-    row = df.iloc[row_idx]
-    timestamp = row.get('timestamp', 'N/A')
-
     fig.update_layout(
-        title=dict(
-            text=f"BTC Price & Lag @ {timestamp}",
-            font=dict(size=14)
-        ),
+        title='BTC Price & Lag',
         showlegend=True,
         legend=dict(orientation='h', yanchor='top', y=-0.08, xanchor='center', x=0.5),
         paper_bgcolor='#1e1e1e',
         plot_bgcolor='#2d2d2d',
         font=dict(color='white'),
-        margin=dict(t=80, b=60)
+        margin=dict(l=50, r=20, t=60, b=60)
     )
 
     return fig
@@ -229,8 +216,8 @@ def _add_ask_prices_for_popout(fig, df, row_idx):
     )
 
     fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=2, col=1)
-    fig.update_xaxes(title_text="Timeline", row=2, col=1, gridcolor='#444')
-    fig.update_yaxes(title_text="Contract Price ($)", row=2, col=1, gridcolor='#444')
+    fig.update_xaxes(row=2, col=1, gridcolor='#444')
+    fig.update_yaxes(row=2, col=1, gridcolor='#444')
 
 
 def _add_btc_for_popout(fig, df, row_idx):
@@ -289,8 +276,8 @@ def _add_btc_for_popout(fig, df, row_idx):
     )
 
     fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=1, col=1)
-    fig.update_xaxes(title_text="Timeline", row=1, col=1, gridcolor='#444')
-    fig.update_yaxes(title_text="BTC Price ($)", row=1, col=1, gridcolor='#444')
+    fig.update_xaxes(row=1, col=1, gridcolor='#444')
+    fig.update_yaxes(row=1, col=1, gridcolor='#444')
 
 
 def _add_lag_for_popout(fig, df, row_idx):
@@ -326,5 +313,5 @@ def _add_lag_for_popout(fig, df, row_idx):
     )
 
     fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=2, col=1)
-    fig.update_xaxes(title_text="Timeline", row=2, col=1, gridcolor='#444')
-    fig.update_yaxes(title_text="Lag ($)", row=2, col=1, gridcolor='#444')
+    fig.update_xaxes(row=2, col=1, gridcolor='#444')
+    fig.update_yaxes(row=2, col=1, gridcolor='#444')

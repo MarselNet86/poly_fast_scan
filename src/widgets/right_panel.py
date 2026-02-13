@@ -68,6 +68,35 @@ def create_file_selector():
     ])
 
 
+def create_market_timer():
+    """Создать блок отображения времени до закрытия рынка"""
+    return html.Div([
+        html.Hr(style={'borderColor': '#444'}),
+        html.Div([
+            html.Span('До закрытия: ', style={
+                'color': '#aaa',
+                'fontSize': '14px',
+                'marginRight': '8px'
+            }),
+            html.Span(id='countdown-display', children='--:--', style={
+                'fontSize': '18px',
+                'fontWeight': 'bold',
+                'fontFamily': 'monospace',
+                'color': '#4CAF50'
+            }),
+            html.Span(id='countdown-seconds', children='(--- сек)', style={
+                'fontSize': '12px',
+                'marginLeft': '8px',
+                'color': '#888'
+            })
+        ], style={
+            'display': 'flex',
+            'alignItems': 'center',
+            'marginBottom': '10px'
+        })
+    ])
+
+
 def create_file_info_panel():
     """Создать панель информации о файле"""
     return html.Div([
@@ -125,6 +154,7 @@ def create_right_panel():
     """Создать правую панель с настройками"""
     return html.Div([
         create_file_selector(),
+        create_market_timer(),
         create_file_info_panel(),
         create_playback_controls(),
         create_time_slider(),

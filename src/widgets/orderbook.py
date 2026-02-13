@@ -106,8 +106,7 @@ def add_orderbook_traces(fig, data, anomaly_threshold, global_max):
 
     # Настройка осей для стаканов
     fig.update_xaxes(
-        title_text="<- Bids | Asks ->", 
-        row=1, col=1, 
+        row=1, col=1,
         gridcolor='#444',
         range=[-global_max, global_max],
         zeroline=True,
@@ -115,13 +114,12 @@ def add_orderbook_traces(fig, data, anomaly_threshold, global_max):
         zerolinewidth=2
     )
     fig.update_xaxes(
-        title_text="<- Bids | Asks ->", 
-        row=1, col=2, 
+        row=1, col=2,
         gridcolor='#444',
         range=[-global_max, global_max],
         zeroline=True,
         zerolinecolor='rgba(255,255,255,0.5)',
         zerolinewidth=2
     )
-    fig.update_yaxes(title_text="Price Level", row=1, col=1, gridcolor='#444')
-    fig.update_yaxes(title_text="Price Level", row=1, col=2, gridcolor='#444')
+    fig.update_yaxes(row=1, col=1, gridcolor='#444')
+    fig.update_yaxes(row=1, col=2, gridcolor='#444')

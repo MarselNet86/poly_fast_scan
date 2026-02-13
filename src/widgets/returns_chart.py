@@ -187,7 +187,6 @@ def add_returns_traces(fig, df, row_idx):
 
     # === Layout для подграфика Returns ===
     fig.update_yaxes(
-        title_text='Доходность (bp)',
         title_font=dict(color='white', size=12),
         tickfont=dict(color='white'),
         gridcolor='rgba(255,255,255,0.1)',
@@ -198,7 +197,6 @@ def add_returns_traces(fig, df, row_idx):
     )
 
     fig.update_xaxes(
-        title_text='Строка (индекс)',
         title_font=dict(color='white', size=12),
         tickfont=dict(color='white'),
         gridcolor='rgba(255,255,255,0.1)',
@@ -221,7 +219,6 @@ def create_returns_figure(df, row_idx):
 
     fig = make_subplots(
         rows=1, cols=1,
-        subplot_titles=['Returns / Momentum'],
         vertical_spacing=0.12,
         row_heights=[1.0]
     )
@@ -348,7 +345,7 @@ def create_returns_figure(df, row_idx):
 
     # === Layout ===
     fig.update_layout(
-        title=f'Returns / Momentum @ {df["timestamp_et"].iloc[row_idx] if "timestamp_et" in df.columns else "N/A"}',
+        title='Ret1s & Ret5s',
         paper_bgcolor='#1e1e1e',
         plot_bgcolor='#2d2d2d',
         font=dict(color='white'),
@@ -366,7 +363,6 @@ def create_returns_figure(df, row_idx):
     )
 
     fig.update_yaxes(
-        title_text='Доходность (bp)',
         title_font=dict(color='white', size=12),
         tickfont=dict(color='white'),
         gridcolor='rgba(255,255,255,0.1)',
@@ -377,7 +373,6 @@ def create_returns_figure(df, row_idx):
     )
 
     fig.update_xaxes(
-        title_text='Строка (индекс)',
         title_font=dict(color='white', size=12),
         tickfont=dict(color='white'),
         gridcolor='rgba(255,255,255,0.1)',
