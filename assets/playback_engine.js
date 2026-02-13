@@ -13,12 +13,38 @@ window.dash_clientside.playback = {
         isChunkRequested: false,
         totalRows: 0,
         currentGlobalRow: 0,
-        lastSliderUpdate: 0  // Для throttling slider updates
+        lastSliderUpdate: 0,  // Для throttling slider updates
+        // Page Visibility API support
+        rafId: null,           // requestAnimationFrame ID
+        intervalId: null,      // setInterval ID
+        useInterval: false     // true если вкладка неактивна
     },
 
     // Инициализация при загрузке страницы
     init: function () {
         console.log("Playback Engine Initialized");
+        this.channel = new BroadcastChannel('dash_playback_sync');
+
+        // ===== PAGE VISIBILITY API =====
+        // Переключение между RAF (активная вкладка) и setInterval (фон)
+        document.addEventListener('visibilitychange', () => {
+            const s = this.state;
+            if (!s.isPlaying) return;
+
+            if (document.hidden) {
+                // Вкладка стала неактивной → переключаемся на setInterval
+                console.log("Tab hidden → switching to setInterval");
+                this.stopLoop();
+                s.useInterval = true;
+                this.startLoop();
+            } else {
+                // Вкладка стала активной → переключаемся на RAF
+                console.log("Tab visible → switching to requestAnimationFrame");
+                this.stopLoop();
+                s.useInterval = false;
+                this.startLoop();
+            }
+        });
     },
 
     // Callback: Получение нового batch данных от сервера
@@ -56,9 +82,18 @@ window.dash_clientside.playback = {
 
         const s = this.state;
         const wasPlaying = s.isPlaying;
+        const oldSpeed = s.speed;
         s.isPlaying = playbackState.is_playing;
         s.speed = playbackState.speed || 1;
         s.totalRows = sliderMax || 10000;
+
+        // Broadcast state change
+        if (this.channel) {
+            this.channel.postMessage({
+                type: 'state',
+                data: playbackState
+            });
+        }
 
         // Если нажали Play, запускаем цикл
         if (s.isPlaying && !wasPlaying) {
@@ -71,8 +106,20 @@ window.dash_clientside.playback = {
                 this.requestChunk(startRow, true);
             }
 
-            // Запускаем loop через requestAnimationFrame с timestamp
-            requestAnimationFrame((ts) => this.loop(ts));
+            // Определяем режим: RAF для активной вкладки, setInterval для фоновой
+            s.useInterval = document.hidden;
+            this.startLoop();
+        }
+
+        // Если скорость изменилась во время воспроизведения в режиме setInterval
+        if (s.isPlaying && wasPlaying && s.speed !== oldSpeed && s.useInterval) {
+            console.log(`Speed changed to ${s.speed}x, restarting setInterval`);
+            this.startLoop(); // stopLoop вызывается внутри startLoop
+        }
+
+        // Если нажали Pause/Stop, останавливаем цикл
+        if (!s.isPlaying && wasPlaying) {
+            this.stopLoop();
         }
     },
 
@@ -83,22 +130,65 @@ window.dash_clientside.playback = {
             rowIdx < (s.globalBufferStartRow + s.globalBuffer.length);
     },
 
+    // Запуск цикла воспроизведения (RAF или setInterval)
+    startLoop: function () {
+        const s = this.state;
+        this.stopLoop(); // Убедимся что нет дубликатов
+
+        if (s.useInterval) {
+            // setInterval для фоновых вкладок (браузер не замедляет)
+            const targetInterval = 1000 / (s.fps * s.speed);
+            s.intervalId = setInterval(() => this.loop(), targetInterval);
+            console.log(`Started setInterval loop (${targetInterval}ms)`);
+        } else {
+            // requestAnimationFrame для активных вкладок (плавно)
+            s.rafId = requestAnimationFrame((ts) => this.loop(ts));
+            console.log("Started requestAnimationFrame loop");
+        }
+    },
+
+    // Остановка цикла воспроизведения
+    stopLoop: function () {
+        const s = this.state;
+        if (s.rafId) {
+            cancelAnimationFrame(s.rafId);
+            s.rafId = null;
+        }
+        if (s.intervalId) {
+            clearInterval(s.intervalId);
+            s.intervalId = null;
+        }
+    },
+
     // Основной цикл воспроизведения
     loop: function (timestamp) {
         const s = this.state;
-        if (!s.isPlaying) return;
-
-        // Контроль FPS
-        if (!s.lastFrameTime) s.lastFrameTime = timestamp;
-        const elapsed = timestamp - s.lastFrameTime;
-        const targetInterval = 1000 / (s.fps * s.speed);
-
-        if (elapsed > targetInterval) {
-            s.lastFrameTime = timestamp - (elapsed % targetInterval);
-            this.renderFrame();
+        if (!s.isPlaying) {
+            this.stopLoop();
+            return;
         }
 
-        requestAnimationFrame((ts) => this.loop(ts));
+        // timestamp может быть undefined если вызвано через setInterval
+        const now = timestamp || performance.now();
+
+        // Контроль FPS (только для RAF режима)
+        if (s.useInterval) {
+            // setInterval уже контролирует частоту, просто рендерим
+            this.renderFrame();
+        } else {
+            // requestAnimationFrame: контролируем FPS вручную
+            if (!s.lastFrameTime) s.lastFrameTime = now;
+            const elapsed = now - s.lastFrameTime;
+            const targetInterval = 1000 / (s.fps * s.speed);
+
+            if (elapsed > targetInterval) {
+                s.lastFrameTime = now - (elapsed % targetInterval);
+                this.renderFrame();
+            }
+
+            // Запланировать следующий кадр (только для RAF)
+            s.rafId = requestAnimationFrame((ts) => this.loop(ts));
+        }
     },
 
     // Отрисовка одного кадра
@@ -130,6 +220,19 @@ window.dash_clientside.playback = {
         if (frameData) {
             this.updateCharts(frameData);
             this.updateSlider(row); // Синхронизация слайдера
+
+            // Broadcast frame to pop-out windows
+            if (this.channel) {
+                // Логируем каждый 20-й кадр для отладки
+                if (row % 20 === 0) {
+                    console.log(`[Playback Engine] Broadcasting frame, row=${row}`);
+                }
+                this.channel.postMessage({
+                    type: 'frame',
+                    data: frameData,
+                    row: row
+                });
+            }
         }
 
         // Double buffering: если прошли 75% текущего буфера - грузим следующий

@@ -147,6 +147,7 @@ def create_main_layout():
         html.Div(id='_chunk-receiver-dummy', style={'display': 'none'}),
         html.Div(id='_playback-trigger-dummy', style={'display': 'none'}),
         html.Div(id='_playback-engine-dummy', style={'display': 'none'}),
+        html.Div(id='_playback-init-dummy', style={'display': 'none'}),
 
         # Dummy divs для clientside callback outputs (pop-out buttons)
         html.Div(id='_popout-ob-dummy', style={'display': 'none'}),
@@ -169,14 +170,28 @@ def create_orderbook_popout():
     return html.Div([
         # Shared stores для чтения состояния
         *create_shared_stores(),
-        # Interval для синхронизации
-        dcc.Interval(
-            id='popout-sync-interval',
-            interval=100,  # 100ms sync rate
-            n_intervals=0
-        ),
-        # Store для локального состояния
+        # Store для локального состояния (вместо interval)
         dcc.Store(id='popout-last-value', data={'value': 0}),
+        # Dummy для инициализации receiver
+        html.Div(id='_popout-receiver-init', style={'display': 'none'}),
+
+        # Sync status индикатор
+        html.Div(
+            id='popout-sync-status',
+            children='🔴 Not Synced',
+            style={
+                'position': 'fixed',
+                'top': '10px',
+                'right': '10px',
+                'padding': '5px 10px',
+                'backgroundColor': 'rgba(0,0,0,0.7)',
+                'color': '#aaa',
+                'fontSize': '12px',
+                'borderRadius': '4px',
+                'zIndex': 9999
+            }
+        ),
+
         # Header
         create_header(view_mode='orderbook'),
         # График
@@ -195,14 +210,28 @@ def create_btc_popout():
     return html.Div([
         # Shared stores для чтения состояния
         *create_shared_stores(),
-        # Interval для синхронизации
-        dcc.Interval(
-            id='popout-sync-interval',
-            interval=100,  # 100ms sync rate
-            n_intervals=0
-        ),
-        # Store для локального состояния
+        # Store для локального состояния (вместо interval)
         dcc.Store(id='popout-last-value', data={'value': 0}),
+        # Dummy для инициализации receiver
+        html.Div(id='_popout-receiver-init', style={'display': 'none'}),
+
+        # Sync status индикатор
+        html.Div(
+            id='popout-sync-status',
+            children='🔴 Not Synced',
+            style={
+                'position': 'fixed',
+                'top': '10px',
+                'right': '10px',
+                'padding': '5px 10px',
+                'backgroundColor': 'rgba(0,0,0,0.7)',
+                'color': '#aaa',
+                'fontSize': '12px',
+                'borderRadius': '4px',
+                'zIndex': 9999
+            }
+        ),
+
         # Header
         create_header(view_mode='btc'),
         # График

@@ -150,88 +150,7 @@ def register_callbacks(app):
             return new_state, '▶ Play', PLAY_BTN_STYLE, ''
 
     # ========================================
-    # Callback 3: DISABLED - Server-side interval updates replaced by clientside playback
-    # ========================================
-    # DISABLED: playback engine обновляет графики через requestAnimationFrame, не нужен server-side interval
-    # @callback(
-    #     [
-    #         Output('time-slider', 'value', allow_duplicate=True),
-    #         Output('playback-status', 'children'),
-    #         Output('playback-state', 'data', allow_duplicate=True),
-    #         Output('playback-interval', 'disabled', allow_duplicate=True),
-    #         Output('play-pause-btn', 'children', allow_duplicate=True),
-    #         Output('play-pause-btn', 'style', allow_duplicate=True),
-    #         Output('buffer-status', 'children', allow_duplicate=True)
-    #     ],
-    #     Input('playback-interval', 'n_intervals'),
-    #     [
-    #         State('playback-state', 'data'),
-    #         State('cumulative-times', 'data'),
-    #         State('time-slider', 'max'),
-    #         State('file-selector', 'value'),
-    #         State('buffer-size-slider', 'value')
-    #     ],
-    #     prevent_initial_call=True
-    # )
-    # def update_on_interval(n_intervals, state, cumulative_times, max_rows, filename, buffer_size):
-    #     """Обновить позицию слайдера на основе прошедшего времени"""
-    #     if not state['is_playing'] or not cumulative_times:
-    #         return no_update, no_update, no_update, no_update, no_update, no_update, no_update
-    #
-    #     current_time_ms = int(time.time() * 1000)
-    #     elapsed_wall_time = current_time_ms - state['play_start_time']
-    #     elapsed_data_time = elapsed_wall_time * state['speed']
-    #
-    #     start_row = state['play_start_row']
-    #     if start_row < len(cumulative_times):
-    #         start_offset = cumulative_times[start_row]
-    #     else:
-    #         start_offset = 0
-    #
-    #     target_time = start_offset + elapsed_data_time
-    #     target_row = bisect.bisect_right(cumulative_times, target_time)
-    #     target_row = max(0, min(target_row - 1, max_rows))
-    #
-    #     # Адаптивная буферизация
-    #     buffer_status = no_update
-    #     speed = state['speed']
-    #
-    #     if speed >= 4:
-    #         prebuffer_interval = 2
-    #     elif speed >= 2:
-    #         prebuffer_interval = 3
-    #     else:
-    #         prebuffer_interval = 5
-    #
-    #     if n_intervals % prebuffer_interval == 0 and filename:
-    #         adaptive_buffer_size = int(buffer_size * (1 + (speed - 1) * 0.3))
-    #         adaptive_buffer_size = min(adaptive_buffer_size, buffer_size * 2)
-    #
-    #         prebuffer_traces(filename, target_row, adaptive_buffer_size)
-    #         ahead, total = get_buffer_stats(filename, target_row)
-    #         buffer_status = f"Buffer: {ahead} ahead | {total} cached | x{speed}"
-    #
-    #     if target_row >= max_rows:
-    #         new_state = {
-    #             'is_playing': False,
-    #             'play_start_time': None,
-    #             'play_start_row': max_rows,
-    #             'speed': state['speed']
-    #         }
-    #         status = f"Playback complete. Row {max_rows}/{max_rows}"
-    #         return max_rows, status, new_state, True, '▶ Play', PLAY_BTN_STYLE, "Playback complete"
-    #
-    #     total_duration = cumulative_times[-1] if cumulative_times else 0
-    #     current_data_time = cumulative_times[target_row] if target_row < len(cumulative_times) else total_duration
-    #
-    #     elapsed_sec = current_data_time / 1000
-    #     total_sec = total_duration / 1000
-    #     status = f"x{state['speed']} | {elapsed_sec:.1f}s / {total_sec:.1f}s | Row {target_row}/{max_rows}"
-    #
-    #     return target_row, status, no_update, no_update, no_update, no_update, buffer_status
-
-    # ========================================
-    # Callback 4a: Обновление Orderbook графика через Patch
+    # Callback 3: Обновление Orderbook графика через Patch
     # ========================================
     #
     # Trace indices in orderbook chart (create_orderbook_popout_figure):
@@ -385,18 +304,7 @@ def register_callbacks(app):
         return patched_fig
 
     # ========================================
-    # Callback 5: Динамическое управление FPS
-    # ========================================
-    @callback(
-        Output('playback-interval', 'interval'),
-        Input('fps-selector', 'value')
-    )
-    def update_fps(interval_ms):
-        """Изменить частоту обновления UI"""
-        return interval_ms
-
-    # ========================================
-    # Callback 6a: Синхронизация осей Orderbook chart
+    # Callback 5: Синхронизация осей Orderbook chart
     # ========================================
     # В orderbook chart (2-row, 2-col): xaxis3 = Ask prices (row 2, col 1)
     # Нет других timeseries осей для синхронизации внутри этого чарта.
@@ -500,29 +408,8 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
 
-    # Callback 9: Синхронизация slider в localStorage для pop-out окон
-    @callback(
-        Output('shared-slider-value', 'data'),
-        Input('time-slider', 'value'),
-        [
-            State('file-selector', 'value'),
-            State('playback-state', 'data')
-        ],
-        prevent_initial_call=True
-    )
-    def sync_slider_to_storage(slider_value, filename, playback_state):
-        """Записать позицию слайдера в localStorage для pop-out окон"""
-        # Skip during playback - JS handles slider sync via BroadcastChannel
-        if playback_state and playback_state.get('is_playing'):
-            return no_update
-
-        return {
-            'value': slider_value,
-            'filename': filename,
-            'timestamp': int(time.time() * 1000)
-        }
-
-    # Callback 10: Синхронизация файла в localStorage
+    # ========================================
+    # Callback 9: Синхронизация файла в localStorage
     @callback(
         Output('shared-file-selection', 'data'),
         Input('file-selector', 'value'),
@@ -553,22 +440,32 @@ def register_callbacks(app):
         else:
             return create_main_layout()
 
-    # Callback 12: Update Pop-out Chart content
+    # Callback 12: Update Pop-out Chart content (Server-side Manual Sync)
     @callback(
         [
             Output('popout-chart', 'figure'),
             Output('popout-last-value', 'data')
         ],
-        Input('popout-sync-interval', 'n_intervals'),
+        Input('shared-slider-value', 'data'),
         [
-            State('shared-slider-value', 'data'),
             State('shared-file-selection', 'data'),
             State('popout-last-value', 'data'),
-            State('url', 'search')
+            State('url', 'search'),
+            State('shared-playback-state', 'data')
         ]
     )
-    def update_popout_chart(n, slider_data, file_data, last_value_data, search):
-        """Обновить график в pop-out окне"""
+    def update_popout_chart(slider_data, file_data, last_value_data, search, playback_state):
+        """Обновить график в pop-out окне при ручном изменении слайдера"""
+
+        # ВАЖНО: Проверяем это первая загрузка или нет
+        # Первая загрузка = когда filename еще не сохранен в last_value_data
+        is_first_load = not last_value_data or not last_value_data.get('filename')
+
+        # Skip update if playing (handled by BroadcastChannel in JS)
+        # НО: Всегда создаем график при первой загрузке!
+        if playback_state and playback_state.get('is_playing') and not is_first_load:
+            return no_update, no_update
+
         if not slider_data:
             return no_update, no_update
 
@@ -586,7 +483,8 @@ def register_callbacks(app):
         # Also check if filename changed, if so force update
         last_file = last_value_data.get('filename') if last_value_data else None
 
-        if slider_value == last_val and filename == last_file and n > 0:
+        # Allow update if filename changed or value changed
+        if slider_value == last_val and filename == last_file:
             return no_update, no_update
             
         if not filename:
@@ -766,3 +664,147 @@ def register_callbacks(app):
         State('time-slider', 'max'),
         prevent_initial_call=False
     )
+    # ========================================
+    # Callback 17: Initialize Popout Receiver (with retry logic)
+    # ========================================
+    app.clientside_callback(
+        """
+        function(url_search) {
+            // Проверяем что мы на pop-out странице
+            if (!url_search || (!url_search.includes('view=orderbook') && !url_search.includes('view=btc'))) {
+                return window.dash_clientside.no_update;
+            }
+
+            console.log('[Popout Init] Starting initialization for:', url_search);
+
+            // Ждем пока DOM и Plotly полностью загрузятся
+            function tryInit(attempt) {
+                if (attempt > 20) {  // Максимум 20 попыток (2 секунды)
+                    console.error('[Popout Init] Failed to initialize after 20 attempts');
+                    return;
+                }
+
+                // Проверяем что popout receiver загружен
+                if (!window.dash_clientside.popout) {
+                    console.log('[Popout Init] Waiting for popout_receiver.js... attempt', attempt);
+                    setTimeout(() => tryInit(attempt + 1), 100);
+                    return;
+                }
+
+                // Проверяем что график существует
+                const chartDiv = document.getElementById('popout-chart');
+                const plotlyGraph = chartDiv ? chartDiv.getElementsByClassName('js-plotly-plot')[0] : null;
+
+                if (!plotlyGraph) {
+                    console.log('[Popout Init] Waiting for chart to render... attempt', attempt);
+                    setTimeout(() => tryInit(attempt + 1), 100);
+                    return;
+                }
+
+                // ✅ Все готово - инициализируем
+                console.log('[Popout Init] Chart ready, initializing BroadcastChannel');
+                window.dash_clientside.popout.init();
+            }
+
+            // Начинаем с небольшой задержкой чтобы дать Dash время отрендерить
+            setTimeout(() => tryInit(1), 200);
+
+            return '';
+        }
+        """,
+        Output('_popout-receiver-init', 'children'),
+        Input('url', 'search'),  # ✅ ИЗМЕНЕНО: срабатывает когда URL загружен
+        prevent_initial_call=False
+    )
+
+    # ========================================
+    # Callback 18: Update Popout Sync Status Indicator
+    # ========================================
+    app.clientside_callback(
+        """
+        function(slider_data) {
+            const now = Date.now();
+            const lastUpdate = slider_data ? slider_data.timestamp : 0;
+            const age = now - lastUpdate;
+
+            if (age < 2000) {
+                return '🟢 Synced';
+            } else if (age < 5000) {
+                return '🟡 Slow';
+            } else {
+                return '🔴 Not Synced';
+            }
+        }
+        """,
+        Output('popout-sync-status', 'children'),
+        Input('shared-slider-value', 'data')
+    )
+
+    # ========================================
+    # Callback 19: Clientside - Always sync slider to localStorage (even during playback)
+    # ========================================
+    app.clientside_callback(
+        """
+        function(slider_value, filename, playback_state) {
+            // ВАЖНО: Обновляем shared-slider-value даже во время playback
+            // чтобы sync status indicator работал правильно
+            return {
+                'value': slider_value,
+                'filename': filename,
+                'timestamp': Date.now()
+            };
+        }
+        """,
+        Output('shared-slider-value', 'data', allow_duplicate=True),
+        Input('time-slider', 'value'),
+        [
+            State('file-selector', 'value'),
+            State('playback-state', 'data')
+        ],
+        prevent_initial_call=True
+    )
+
+    # ========================================
+    # Callback 20: Clientside - Initialize Playback Engine on main page
+    # ========================================
+    app.clientside_callback(
+        """
+        function(url_search) {
+            // Только для главной страницы (не pop-out)
+            if (url_search && (url_search.includes('view=orderbook') || url_search.includes('view=btc'))) {
+                return window.dash_clientside.no_update;
+            }
+
+            console.log('[Main Page] Initializing playback engine...');
+
+            // Проверяем что playback engine загружен
+            if (window.dash_clientside.playback && window.dash_clientside.playback.init) {
+                window.dash_clientside.playback.init();
+                console.log('[Main Page] Playback engine initialized');
+            } else {
+                console.warn('[Main Page] Playback engine not found, retrying in 100ms');
+                setTimeout(() => {
+                    if (window.dash_clientside.playback && window.dash_clientside.playback.init) {
+                        window.dash_clientside.playback.init();
+                        console.log('[Main Page] Playback engine initialized (retry)');
+                    }
+                }, 100);
+            }
+
+            return '';
+        }
+        """,
+        Output('_playback-init-dummy', 'children'),
+        Input('url', 'search'),
+        prevent_initial_call=False
+    )
+
+    # ========================================
+    # Callback 21: Sync Playback State to Shared Storage
+    # ========================================
+    @callback(
+        Output('shared-playback-state', 'data'),
+        Input('playback-state', 'data')
+    )
+    def sync_playback_state(state):
+        return state
