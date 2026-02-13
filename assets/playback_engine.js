@@ -23,7 +23,6 @@ window.dash_clientside.playback = {
     // Инициализация при загрузке страницы
     init: function () {
         console.log("Playback Engine Initialized");
-        this.channel = new BroadcastChannel('dash_playback_sync');
 
         // ===== PAGE VISIBILITY API =====
         // Переключение между RAF (активная вкладка) и setInterval (фон)
@@ -86,14 +85,6 @@ window.dash_clientside.playback = {
         s.isPlaying = playbackState.is_playing;
         s.speed = playbackState.speed || 1;
         s.totalRows = sliderMax || 10000;
-
-        // Broadcast state change
-        if (this.channel) {
-            this.channel.postMessage({
-                type: 'state',
-                data: playbackState
-            });
-        }
 
         // Если нажали Play, запускаем цикл
         if (s.isPlaying && !wasPlaying) {
@@ -220,19 +211,6 @@ window.dash_clientside.playback = {
         if (frameData) {
             this.updateCharts(frameData);
             this.updateSlider(row); // Синхронизация слайдера
-
-            // Broadcast frame to pop-out windows
-            if (this.channel) {
-                // Логируем каждый 20-й кадр для отладки
-                if (row % 20 === 0) {
-                    console.log(`[Playback Engine] Broadcasting frame, row=${row}`);
-                }
-                this.channel.postMessage({
-                    type: 'frame',
-                    data: frameData,
-                    row: row
-                });
-            }
         }
 
         // Double buffering: если прошли 75% текущего буфера - грузим следующий

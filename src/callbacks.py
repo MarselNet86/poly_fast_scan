@@ -6,7 +6,7 @@ Callback функции для интерактивности Dash прилож�
 import time
 from dash import html, callback, Output, Input, State, ctx, no_update, Patch
 from .data_loader import load_data, get_file_info, compute_cumulative_times
-from .charts import create_orderbook_chart, create_btc_chart, create_orderbook_popout_figure, create_btc_popout_figure
+from .charts import create_orderbook_chart, create_btc_chart
 from .data_cache import get_data_cache
 
 
@@ -102,8 +102,7 @@ def register_callbacks(app):
         [
             Output('playback-state', 'data'),
             Output('play-pause-btn', 'children'),
-            Output('play-pause-btn', 'style'),
-            Output('_playback-trigger-dummy', 'children')  # ИЗМЕНЕНО: триггер для clientside
+            Output('play-pause-btn', 'style')
         ],
         [
             Input('play-pause-btn', 'n_clicks'),
@@ -139,7 +138,7 @@ def register_callbacks(app):
                 'play_start_row': slider_value,
                 'speed': speed
             }
-            return new_state, '⏸ Pause', PAUSE_BTN_STYLE, ''
+            return new_state, '⏸ Pause', PAUSE_BTN_STYLE
         else:
             new_state = {
                 'is_playing': False,
@@ -147,7 +146,7 @@ def register_callbacks(app):
                 'play_start_row': slider_value,
                 'speed': speed
             }
-            return new_state, '▶ Play', PLAY_BTN_STYLE, ''
+            return new_state, '▶ Play', PLAY_BTN_STYLE
 
     # ========================================
     # Callback 3: Обновление Orderbook графика через Patch
@@ -378,202 +377,7 @@ def register_callbacks(app):
     # ========================================
     # Pop-Out Window Callbacks
     # ========================================
-
-    # Callback 8: Pop-out buttons — open new tab via clientside callback
-    app.clientside_callback(
-        """
-        function(n_clicks) {
-            if (n_clicks > 0) {
-                window.open(window.location.origin + '/?view=orderbook', '_blank');
-            }
-            return '';
-        }
-        """,
-        Output('_popout-ob-dummy', 'children'),
-        Input('popout-orderbook-btn', 'n_clicks'),
-        prevent_initial_call=True
-    )
-
-    app.clientside_callback(
-        """
-        function(n_clicks) {
-            if (n_clicks > 0) {
-                window.open(window.location.origin + '/?view=btc', '_blank');
-            }
-            return '';
-        }
-        """,
-        Output('_popout-btc-dummy', 'children'),
-        Input('popout-btc-btn', 'n_clicks'),
-        prevent_initial_call=True
-    )
-
-    # ========================================
-    # Callback 9: Синхронизация файла в localStorage
-    @callback(
-        Output('shared-file-selection', 'data'),
-        Input('file-selector', 'value'),
-        prevent_initial_call=True
-    )
-    def sync_file_to_storage(filename):
-        """Записать выбранный файл в localStorage для pop-out окон"""
-        if not filename:
-            return no_update
-        return {
-            'filename': filename,
-            'timestamp': int(time.time() * 1000)
-        }
-
-    # Callback 14: Router - Render layout based on URL
-    @callback(
-        Output('content-container', 'children'),
-        Input('url', 'search')
-    )
-    def display_page(search):
-        from .layout import create_main_layout, create_orderbook_popout, create_btc_popout
-        
-        # Parse query params manually or use simple string check
-        if search and 'view=orderbook' in search:
-            return create_orderbook_popout()
-        elif search and 'view=btc' in search:
-            return create_btc_popout()
-        else:
-            return create_main_layout()
-
-    # Callback 12: Update Pop-out Chart content (Server-side Manual Sync)
-    @callback(
-        [
-            Output('popout-chart', 'figure'),
-            Output('popout-last-value', 'data')
-        ],
-        Input('shared-slider-value', 'data'),
-        [
-            State('shared-file-selection', 'data'),
-            State('popout-last-value', 'data'),
-            State('url', 'search'),
-            State('shared-playback-state', 'data')
-        ]
-    )
-    def update_popout_chart(slider_data, file_data, last_value_data, search, playback_state):
-        """Обновить график в pop-out окне при ручном изменении слайдера"""
-
-        # ВАЖНО: Проверяем это первая загрузка или нет
-        # Первая загрузка = когда filename еще не сохранен в last_value_data
-        is_first_load = not last_value_data or not last_value_data.get('filename')
-
-        # Skip update if playing (handled by BroadcastChannel in JS)
-        # НО: Всегда создаем график при первой загрузке!
-        if playback_state and playback_state.get('is_playing') and not is_first_load:
-            return no_update, no_update
-
-        if not slider_data:
-            return no_update, no_update
-
-        # Fallback logic: sometimes filename is in slider_data if initializing
-        filename = None
-        if file_data and file_data.get('filename'):
-            filename = file_data.get('filename')
-        elif slider_data.get('filename'):
-             filename = slider_data.get('filename')
-        
-        slider_value = slider_data.get('value', 0)
-        
-        # Optimization: Don't update if value hasn't changed
-        last_val = last_value_data.get('value', -1) if last_value_data else -1
-        # Also check if filename changed, if so force update
-        last_file = last_value_data.get('filename') if last_value_data else None
-
-        # Allow update if filename changed or value changed
-        if slider_value == last_val and filename == last_file:
-            return no_update, no_update
-            
-        if not filename:
-             return no_update, no_update
-
-        # Determine view mode from URL
-        view_mode = 'main'
-        if search and 'view=orderbook' in search:
-            view_mode = 'orderbook'
-        elif search and 'view=btc' in search:
-            view_mode = 'btc'
-            
-        if view_mode == 'main':
-             return no_update, no_update
-
-        # Load data
-        try:
-             df = load_data(filename)
-        except Exception as e:
-             print(f"Error loading data for pop-out: {e}")
-             return no_update, no_update
-
-        fig = no_update
-        if view_mode == 'orderbook':
-             fig = create_orderbook_popout_figure(df, slider_value)
-        elif view_mode == 'btc':
-             fig = create_btc_popout_figure(df, slider_value)
-            
-        # Store current state
-        new_state = {'value': slider_value, 'filename': filename}
-        
-        return fig, new_state
-
-    # Callback 13: Toggle main page charts based on pop-out status
-    @callback(
-        [
-            Output('chart-orderbook-container', 'style'),
-            Output('placeholder-orderbook', 'style'),
-            Output('chart-btc-container', 'style'),
-            Output('placeholder-btc', 'style')
-        ],
-        Input('shared-popout-status', 'data'),
-        prevent_initial_call=False
-    )
-    def toggle_charts_visibility(popout_status):
-        """
-        Скрыть графики на главной странице, если они открыты в pop-out окне.
-        Показать вместо них placeholder.
-        """
-        if not popout_status:
-            return {}, {'display': 'none'}, {}, {'display': 'none'}
-
-        # Стили плейсхолдера
-        visible_placeholder_style = {
-            'display': 'block',
-            'backgroundColor': '#2d2d2d',
-            'border': '2px dashed #555',
-            'borderRadius': '8px',
-            'padding': '40px',
-            'textAlign': 'center',
-            'color': '#888',
-            'fontSize': '18px',
-            'margin': '10px 0'
-        }
-        hidden_placeholder_style = {'display': 'none'}
-        
-        hidden_chart_style = {'display': 'none'}
-        visible_chart_style = {'display': 'block'}
-
-        # Orderbook Visibility
-        if popout_status.get('orderbook'):
-            ob_chart_style = hidden_chart_style
-            ob_placeholder_style = visible_placeholder_style
-        else:
-            ob_chart_style = visible_chart_style
-            ob_placeholder_style = hidden_placeholder_style
-
-        # BTC Visibility
-        if popout_status.get('btc'):
-            btc_chart_style = hidden_chart_style
-            btc_placeholder_style = visible_placeholder_style
-        else:
-            btc_chart_style = visible_chart_style
-            btc_placeholder_style = hidden_placeholder_style
-
-        return ob_chart_style, ob_placeholder_style, btc_chart_style, btc_placeholder_style
-
-    # ========================================
-    # Callback 14: Load data chunks for clientside playback
+    # Callback 8: Load data chunks for clientside playback
     # ========================================
     @callback(
         Output('playback-chunk-data', 'data'),
@@ -664,117 +468,13 @@ def register_callbacks(app):
         State('time-slider', 'max'),
         prevent_initial_call=False
     )
-    # ========================================
-    # Callback 17: Initialize Popout Receiver (with retry logic)
-    # ========================================
-    app.clientside_callback(
-        """
-        function(url_search) {
-            // Проверяем что мы на pop-out странице
-            if (!url_search || (!url_search.includes('view=orderbook') && !url_search.includes('view=btc'))) {
-                return window.dash_clientside.no_update;
-            }
-
-            console.log('[Popout Init] Starting initialization for:', url_search);
-
-            // Ждем пока DOM и Plotly полностью загрузятся
-            function tryInit(attempt) {
-                if (attempt > 20) {  // Максимум 20 попыток (2 секунды)
-                    console.error('[Popout Init] Failed to initialize after 20 attempts');
-                    return;
-                }
-
-                // Проверяем что popout receiver загружен
-                if (!window.dash_clientside.popout) {
-                    console.log('[Popout Init] Waiting for popout_receiver.js... attempt', attempt);
-                    setTimeout(() => tryInit(attempt + 1), 100);
-                    return;
-                }
-
-                // Проверяем что график существует
-                const chartDiv = document.getElementById('popout-chart');
-                const plotlyGraph = chartDiv ? chartDiv.getElementsByClassName('js-plotly-plot')[0] : null;
-
-                if (!plotlyGraph) {
-                    console.log('[Popout Init] Waiting for chart to render... attempt', attempt);
-                    setTimeout(() => tryInit(attempt + 1), 100);
-                    return;
-                }
-
-                // ✅ Все готово - инициализируем
-                console.log('[Popout Init] Chart ready, initializing BroadcastChannel');
-                window.dash_clientside.popout.init();
-            }
-
-            // Начинаем с небольшой задержкой чтобы дать Dash время отрендерить
-            setTimeout(() => tryInit(1), 200);
-
-            return '';
-        }
-        """,
-        Output('_popout-receiver-init', 'children'),
-        Input('url', 'search'),  # ✅ ИЗМЕНЕНО: срабатывает когда URL загружен
-        prevent_initial_call=False
-    )
 
     # ========================================
-    # Callback 18: Update Popout Sync Status Indicator
+    # Callback 8: Clientside - Initialize Playback Engine on main page
     # ========================================
     app.clientside_callback(
         """
-        function(slider_data) {
-            const now = Date.now();
-            const lastUpdate = slider_data ? slider_data.timestamp : 0;
-            const age = now - lastUpdate;
-
-            if (age < 2000) {
-                return '🟢 Synced';
-            } else if (age < 5000) {
-                return '🟡 Slow';
-            } else {
-                return '🔴 Not Synced';
-            }
-        }
-        """,
-        Output('popout-sync-status', 'children'),
-        Input('shared-slider-value', 'data')
-    )
-
-    # ========================================
-    # Callback 19: Clientside - Always sync slider to localStorage (even during playback)
-    # ========================================
-    app.clientside_callback(
-        """
-        function(slider_value, filename, playback_state) {
-            // ВАЖНО: Обновляем shared-slider-value даже во время playback
-            // чтобы sync status indicator работал правильно
-            return {
-                'value': slider_value,
-                'filename': filename,
-                'timestamp': Date.now()
-            };
-        }
-        """,
-        Output('shared-slider-value', 'data', allow_duplicate=True),
-        Input('time-slider', 'value'),
-        [
-            State('file-selector', 'value'),
-            State('playback-state', 'data')
-        ],
-        prevent_initial_call=True
-    )
-
-    # ========================================
-    # Callback 20: Clientside - Initialize Playback Engine on main page
-    # ========================================
-    app.clientside_callback(
-        """
-        function(url_search) {
-            // Только для главной страницы (не pop-out)
-            if (url_search && (url_search.includes('view=orderbook') || url_search.includes('view=btc'))) {
-                return window.dash_clientside.no_update;
-            }
-
+        function(_) {
             console.log('[Main Page] Initializing playback engine...');
 
             // Проверяем что playback engine загружен
@@ -795,16 +495,6 @@ def register_callbacks(app):
         }
         """,
         Output('_playback-init-dummy', 'children'),
-        Input('url', 'search'),
+        Input('_playback-init-dummy', 'id'),
         prevent_initial_call=False
     )
-
-    # ========================================
-    # Callback 21: Sync Playback State to Shared Storage
-    # ========================================
-    @callback(
-        Output('shared-playback-state', 'data'),
-        Input('playback-state', 'data')
-    )
-    def sync_playback_state(state):
-        return state
