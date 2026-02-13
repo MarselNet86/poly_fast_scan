@@ -102,7 +102,11 @@ def extract_trace_data(df: pd.DataFrame, row_idx: int) -> Dict:
         'oracle_price_x': [row_idx] if pd.notna(row.get('oracle_btc_price')) else [],
         'oracle_price_y': [float(row.get('oracle_btc_price'))] if pd.notna(row.get('oracle_btc_price')) else [],
         'lag_x': [row_idx] if pd.notna(row.get('lag')) else [],
-        'lag_y': [float(row.get('lag'))] if pd.notna(row.get('lag')) else []
+        'lag_y': [float(row.get('lag'))] if pd.notna(row.get('lag')) else [],
+        'ret1s_x': [row_idx] if pd.notna(row.get('binance_ret1s_x100')) else [],
+        'ret1s_y': [float(row.get('binance_ret1s_x100'))] if pd.notna(row.get('binance_ret1s_x100')) else [],
+        'ret5s_x': [row_idx] if pd.notna(row.get('binance_ret5s_x100')) else [],
+        'ret5s_y': [float(row.get('binance_ret5s_x100'))] if pd.notna(row.get('binance_ret5s_x100')) else []
     }
     return trace_data
 

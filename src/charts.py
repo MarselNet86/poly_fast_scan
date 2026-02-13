@@ -19,6 +19,7 @@ from .widgets.orderbook import add_orderbook_traces
 from .widgets.ask_prices_chart import add_ask_prices_traces
 from .widgets.btc_chart import add_btc_traces
 from .widgets.lag_chart import add_lag_traces
+from .widgets.returns_chart import create_returns_figure
 
 
 def create_orderbook_chart(df, row_idx):
@@ -44,6 +45,18 @@ def create_btc_chart(df, row_idx):
     """
     fig = create_btc_popout_figure(df, row_idx)
     fig.update_layout(height=450)
+    return fig
+
+
+def create_returns_chart(df, row_idx):
+    """
+    Создать независимый график Returns/Momentum для main view.
+
+    Returns:
+        go.Figure: Plotly фигура с графиками доходности (Ret1s, Ret5s)
+    """
+    fig = create_returns_figure(df, row_idx)
+    fig.update_layout(height=350)
     return fig
 
 

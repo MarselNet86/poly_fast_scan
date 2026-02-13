@@ -292,6 +292,38 @@ window.dash_clientside.playback = {
             // REMOVED: Plotly.relayout triggers HTTP request to sync_btc_chart_axes callback
             // Title update not critical during playback
         }
+
+        // Returns Chart (chart-returns)
+        const returnsDiv = document.getElementById('chart-returns');
+        const returnsGraph = returnsDiv ? returnsDiv.getElementsByClassName('js-plotly-plot')[0] : null;
+
+        if (returnsGraph) {
+            // Indices: 2=Current Ret1s M, 3=Current Ret5s M
+            const update = {
+                'x': [data.ret1s_x, data.ret5s_x],
+                'y': [data.ret1s_y, data.ret5s_y]
+            };
+            const traces = [2, 3];
+            Plotly.restyle(returnsGraph, update, traces);
+
+            // Обновляем цвет маркера Ret1s в зависимости от значения
+            if (data.ret1s_y && data.ret1s_y.length > 0) {
+                const ret1s_val = data.ret1s_y[0];
+                let point_color;
+
+                if (ret1s_val > 0.10) {
+                    point_color = '#00FF64';  // Ярко-зеленый (сильный UP)
+                } else if (ret1s_val < -0.10) {
+                    point_color = '#FF6464';  // Ярко-красный (сильный DOWN)
+                } else if (Math.abs(ret1s_val) > 0.05) {
+                    point_color = '#FFB300';  // Оранжевый (импульс)
+                } else {
+                    point_color = '#00BCD4';  // Голубой (спокойный)
+                }
+
+                Plotly.restyle(returnsGraph, { 'marker.color': point_color }, [2]);
+            }
+        }
     },
 
     // Синхронизация слайдера (визуальная)
