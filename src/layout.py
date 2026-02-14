@@ -28,6 +28,9 @@ def create_left_panel():
         # Arbitrage Indicator chart
         dcc.Graph(id='chart-arbitrage-indicator', style={'height': '450px', 'width': '100%'}),
 
+        # Spread chart
+        dcc.Graph(id='chart-spread', style={'height': '450px', 'width': '100%'}),
+
         # Depth chart
         dcc.Graph(id='chart-depth', style={'height': '450px', 'width': '100%'}),
 

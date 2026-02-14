@@ -26,6 +26,8 @@ from .widgets.volume_spike_chart import create_volume_spike_figure
 from .widgets.p_vwap_chart import create_p_vwap_figure
 from .widgets.latency_direction_chart import create_latency_direction_figure
 from .widgets.arbitrage_indicator_chart import create_arbitrage_indicator_figure
+from .widgets.spread_chart import create_spread_figure
+
 from .widgets.depth_chart import create_depth_figure
 
 
@@ -49,6 +51,18 @@ def create_arbitrage_indicator_chart(df, row_idx):
         go.Figure: Plotly фигура с индикатором арбитража
     """
     fig = create_arbitrage_indicator_figure(df, row_idx)
+    fig.update_layout(height=450)
+    return fig
+
+
+def create_spread_chart(df, row_idx):
+    """
+    Создать независимый график Spread для main view.
+
+    Returns:
+        go.Figure: Plotly фигура со спредом
+    """
+    fig = create_spread_figure(df, row_idx)
     fig.update_layout(height=450)
     return fig
 
