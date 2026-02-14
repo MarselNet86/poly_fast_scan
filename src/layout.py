@@ -25,6 +25,9 @@ def create_left_panel():
         # Orderbook chart (UP/DOWN orderbook + Ask prices)
         dcc.Graph(id='chart-orderbook', style={'height': '700px', 'width': '100%'}),
 
+        # Microprice chart
+        dcc.Graph(id='chart-microprice', style={'height': '450px', 'width': '100%'}),
+
         # Arbitrage Indicator chart
         dcc.Graph(id='chart-arbitrage-indicator', style={'height': '450px', 'width': '100%'}),
 
@@ -33,9 +36,6 @@ def create_left_panel():
 
         # Imbalance chart
         dcc.Graph(id='chart-imbalance', style={'height': '450px', 'width': '100%'}),
-
-        # Microprice chart
-        dcc.Graph(id='chart-microprice', style={'height': '450px', 'width': '100%'}),
 
         # Depth chart
         dcc.Graph(id='chart-depth', style={'height': '450px', 'width': '100%'}),
