@@ -6,7 +6,7 @@ Callback функции для интерактивности Dash прилож�
 import time
 from dash import html, callback, Output, Input, State, ctx, no_update, Patch
 from .data_loader import load_data, compute_cumulative_times
-from .charts import create_orderbook_chart, create_btc_chart, create_returns_chart, create_volume_chart, create_volatility_chart
+from .charts import create_orderbook_chart, create_btc_chart, create_returns_chart, create_volume_chart, create_volatility_chart, create_volume_spike_chart
 from .data_cache import get_data_cache
 
 
@@ -53,7 +53,8 @@ def register_callbacks(app):
             Output('chart-btc', 'figure'),
             Output('chart-returns', 'figure'),
             Output('chart-volume', 'figure'),
-            Output('chart-volatility', 'figure')
+            Output('chart-volatility', 'figure'),
+            Output('chart-volume-spike', 'figure')
         ],
         Input('file-selector', 'value')
     )
@@ -61,7 +62,7 @@ def register_callbacks(app):
         """Инициализировать все компоненты при смене файла"""
         if not filename:
             empty_fig = {'data': [], 'layout': {'paper_bgcolor': '#1e1e1e', 'plot_bgcolor': '#2d2d2d'}}
-            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
+            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
         cache = get_data_cache()
         df = cache.get_df(filename)
@@ -75,14 +76,15 @@ def register_callbacks(app):
             for i in range(0, max_val + 1, step)
         }
 
-        # Создаем начальные графики (пять независимых)
+        # Создаем начальные графики (шесть независимых)
         ob_fig = create_orderbook_chart(df, 0)
         btc_fig = create_btc_chart(df, 0)
         returns_fig = create_returns_chart(df, 0)
         volume_fig = create_volume_chart(df, 0)
         volatility_fig = create_volatility_chart(df, 0)
+        volume_spike_fig = create_volume_spike_chart(df, 0)
 
-        return cumulative_times, max_val, marks, 0, ob_fig, btc_fig, returns_fig, volume_fig, volatility_fig
+        return cumulative_times, max_val, marks, 0, ob_fig, btc_fig, returns_fig, volume_fig, volatility_fig, volume_spike_fig
 
     # ========================================
     # Callback 2: Обработка Play/Pause кнопки
@@ -413,6 +415,48 @@ def register_callbacks(app):
 
         # Заголовок Volatility
         patched_fig['layout']['title']['text'] = "Volatility (ATR & RVol)"
+
+        return patched_fig
+
+    # ========================================
+    # Callback 4f: Обновление Volume Spike графика через Patch
+    # ========================================
+    #
+    # Trace indices in volume spike chart (create_volume_spike_figure):
+    #   0: Volume Spike line
+    #
+    @callback(
+        Output('chart-volume-spike', 'figure', allow_duplicate=True),
+        Input('time-slider', 'value'),
+        [
+            State('file-selector', 'value'),
+            State('playback-state', 'data'),
+            State('active-track-checklist', 'value'),
+            State('active-track-zoom-slider', 'value')
+        ],
+        prevent_initial_call=True
+    )
+    def update_volume_spike_on_slider(slider_value, filename, playback_state, active_track, zoom_level):
+        """Обновить Volume Spike только при РУЧНОМ движении слайдера"""
+
+        # Skip if playback is active (JS handles updates)
+        if playback_state and playback_state.get('is_playing'):
+            return no_update
+
+        if not filename:
+            return no_update
+
+        patched_fig = Patch()
+
+        # Active-Track: авто-скролл volume spike
+        if active_track and 'enabled' in active_track:
+            half_window = zoom_level if zoom_level else 150
+            x_min = max(0, slider_value - half_window)
+            x_max = slider_value + half_window
+            patched_fig['layout']['xaxis']['range'] = [x_min, x_max]
+
+        # Заголовок Volume Spike
+        patched_fig['layout']['title']['text'] = "Volume Spike"
 
         return patched_fig
 

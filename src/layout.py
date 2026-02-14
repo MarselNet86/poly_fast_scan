@@ -36,6 +36,9 @@ def create_left_panel():
 
         # Volatility chart (ATR, RVol)
         dcc.Graph(id='chart-volatility', style={'height': '700px', 'width': '100%'}),
+
+        # Volume Spike chart
+        dcc.Graph(id='chart-volume-spike', style={'height': '450px', 'width': '100%'}),
     ], style={'flex': '3', 'padding': '15px'})
 
 

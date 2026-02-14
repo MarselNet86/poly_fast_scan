@@ -22,6 +22,7 @@ from .widgets.lag_chart import add_lag_traces
 from .widgets.returns_chart import create_returns_figure
 from .widgets.volume_chart import create_volume_figure
 from .widgets.volatility_chart import create_volatility_figure
+from .widgets.volume_spike_chart import create_volume_spike_figure
 
 
 def create_orderbook_chart(df, row_idx):
@@ -83,6 +84,18 @@ def create_volatility_chart(df, row_idx):
     """
     fig = create_volatility_figure(df, row_idx)
     fig.update_layout(height=700)
+    return fig
+
+
+def create_volume_spike_chart(df, row_idx):
+    """
+    Создать независимый график Volume Spike для main view.
+
+    Returns:
+        go.Figure: Plotly фигура с графиком всплесков объёма
+    """
+    fig = create_volume_spike_figure(df, row_idx)
+    fig.update_layout(height=450)
     return fig
 
 
