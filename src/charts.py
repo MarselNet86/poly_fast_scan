@@ -21,6 +21,7 @@ from .widgets.btc_chart import add_btc_traces
 from .widgets.lag_chart import add_lag_traces
 from .widgets.returns_chart import create_returns_figure
 from .widgets.volume_chart import create_volume_figure
+from .widgets.volatility_chart import create_volatility_figure
 
 
 def create_orderbook_chart(df, row_idx):
@@ -70,6 +71,18 @@ def create_volume_chart(df, row_idx):
     """
     fig = create_volume_figure(df, row_idx)
     fig.update_layout(height=450)
+    return fig
+
+
+def create_volatility_chart(df, row_idx):
+    """
+    Создать независимый график Volatility для main view.
+
+    Returns:
+        go.Figure: Plotly фигура с графиками волатильности (ATR, RVol)
+    """
+    fig = create_volatility_figure(df, row_idx)
+    fig.update_layout(height=700)
     return fig
 
 

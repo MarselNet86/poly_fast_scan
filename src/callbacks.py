@@ -6,7 +6,7 @@ Callback функции для интерактивности Dash прилож�
 import time
 from dash import html, callback, Output, Input, State, ctx, no_update, Patch
 from .data_loader import load_data, compute_cumulative_times
-from .charts import create_orderbook_chart, create_btc_chart, create_returns_chart, create_volume_chart
+from .charts import create_orderbook_chart, create_btc_chart, create_returns_chart, create_volume_chart, create_volatility_chart
 from .data_cache import get_data_cache
 
 
@@ -52,7 +52,8 @@ def register_callbacks(app):
             Output('chart-orderbook', 'figure'),
             Output('chart-btc', 'figure'),
             Output('chart-returns', 'figure'),
-            Output('chart-volume', 'figure')
+            Output('chart-volume', 'figure'),
+            Output('chart-volatility', 'figure')
         ],
         Input('file-selector', 'value')
     )
@@ -60,7 +61,7 @@ def register_callbacks(app):
         """Инициализировать все компоненты при смене файла"""
         if not filename:
             empty_fig = {'data': [], 'layout': {'paper_bgcolor': '#1e1e1e', 'plot_bgcolor': '#2d2d2d'}}
-            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig
+            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
         cache = get_data_cache()
         df = cache.get_df(filename)
@@ -74,13 +75,14 @@ def register_callbacks(app):
             for i in range(0, max_val + 1, step)
         }
 
-        # Создаем начальные графики (четыре независимых)
+        # Создаем начальные графики (пять независимых)
         ob_fig = create_orderbook_chart(df, 0)
         btc_fig = create_btc_chart(df, 0)
         returns_fig = create_returns_chart(df, 0)
         volume_fig = create_volume_chart(df, 0)
+        volatility_fig = create_volatility_chart(df, 0)
 
-        return cumulative_times, max_val, marks, 0, ob_fig, btc_fig, returns_fig, volume_fig
+        return cumulative_times, max_val, marks, 0, ob_fig, btc_fig, returns_fig, volume_fig, volatility_fig
 
     # ========================================
     # Callback 2: Обработка Play/Pause кнопки
@@ -370,6 +372,51 @@ def register_callbacks(app):
         return patched_fig
 
     # ========================================
+    # Callback 4e: Обновление Volatility графика через Patch
+    # ========================================
+    #
+    # Trace indices in volatility chart (create_volatility_figure):
+    #   0: ATR 5s line (subplot 1)
+    #   1: ATR 30s line (subplot 1)
+    #   2: RVol 30s line (subplot 2)
+    #
+    @callback(
+        Output('chart-volatility', 'figure', allow_duplicate=True),
+        Input('time-slider', 'value'),
+        [
+            State('file-selector', 'value'),
+            State('playback-state', 'data'),
+            State('active-track-checklist', 'value'),
+            State('active-track-zoom-slider', 'value')
+        ],
+        prevent_initial_call=True
+    )
+    def update_volatility_on_slider(slider_value, filename, playback_state, active_track, zoom_level):
+        """Обновить Volatility только при РУЧНОМ движении слайдера"""
+
+        # Skip if playback is active (JS handles updates)
+        if playback_state and playback_state.get('is_playing'):
+            return no_update
+
+        if not filename:
+            return no_update
+
+        patched_fig = Patch()
+
+        # Active-Track: авто-скролл volatility (оба подграфика)
+        if active_track and 'enabled' in active_track:
+            half_window = zoom_level if zoom_level else 150
+            x_min = max(0, slider_value - half_window)
+            x_max = slider_value + half_window
+            patched_fig['layout']['xaxis']['range'] = [x_min, x_max]
+            patched_fig['layout']['xaxis2']['range'] = [x_min, x_max]
+
+        # Заголовок Volatility
+        patched_fig['layout']['title']['text'] = "Volatility (ATR & RVol)"
+
+        return patched_fig
+
+    # ========================================
     # Callback 5: Синхронизация осей Orderbook chart
     # ========================================
     # В orderbook chart (2-row, 2-col): xaxis3 = Ask prices (row 2, col 1)
@@ -423,6 +470,60 @@ def register_callbacks(app):
             return patched_fig
 
         # Сброс зума на Lag
+        if 'xaxis2.autorange' in relayout_data:
+            patched_fig['layout']['xaxis']['autorange'] = True
+            return patched_fig
+
+        return no_update
+
+    # ========================================
+    # Callback 6c: Синхронизация осей Volatility chart
+    # ========================================
+    # В volatility chart (2-row, 1-col): xaxis = ATR (row 1), xaxis2 = RVol (row 2)
+    @callback(
+        Output('chart-volatility', 'figure', allow_duplicate=True),
+        Input('chart-volatility', 'relayoutData'),
+        [
+            State('active-track-checklist', 'value'),
+            State('playback-state', 'data')
+        ],
+        prevent_initial_call=True
+    )
+    def sync_volatility_chart_axes(relayout_data, active_track, playback_state):
+        """Синхронизация осей xaxis (ATR) и xaxis2 (RVol) при зуме"""
+        # Skip during playback - JS handles updates
+        if playback_state and playback_state.get('is_playing'):
+            return no_update
+
+        if active_track and 'enabled' in active_track:
+            return no_update
+        if not relayout_data:
+            return no_update
+
+        patched_fig = Patch()
+
+        # Зум на ATR (xaxis) -> обновить RVol
+        if 'xaxis.range[0]' in relayout_data and 'xaxis.range[1]' in relayout_data:
+            patched_fig['layout']['xaxis2']['range'] = [
+                relayout_data['xaxis.range[0]'],
+                relayout_data['xaxis.range[1]']
+            ]
+            return patched_fig
+
+        # Зум на RVol (xaxis2) -> обновить ATR
+        if 'xaxis2.range[0]' in relayout_data and 'xaxis2.range[1]' in relayout_data:
+            patched_fig['layout']['xaxis']['range'] = [
+                relayout_data['xaxis2.range[0]'],
+                relayout_data['xaxis2.range[1]']
+            ]
+            return patched_fig
+
+        # Сброс зума на ATR
+        if 'xaxis.autorange' in relayout_data:
+            patched_fig['layout']['xaxis2']['autorange'] = True
+            return patched_fig
+
+        # Сброс зума на RVol
         if 'xaxis2.autorange' in relayout_data:
             patched_fig['layout']['xaxis']['autorange'] = True
             return patched_fig
