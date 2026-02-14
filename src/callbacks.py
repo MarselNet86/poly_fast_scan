@@ -5,8 +5,8 @@ Callback функции для интерактивности Dash прилож�
 
 import time
 from dash import html, callback, Output, Input, State, ctx, no_update, Patch
-from .data_loader import load_data, get_file_info, compute_cumulative_times
-from .charts import create_orderbook_chart, create_btc_chart, create_returns_chart
+from .data_loader import load_data, compute_cumulative_times
+from .charts import create_orderbook_chart, create_btc_chart, create_returns_chart, create_volume_chart
 from .data_cache import get_data_cache
 
 
@@ -49,10 +49,10 @@ def register_callbacks(app):
             Output('time-slider', 'max'),
             Output('time-slider', 'marks'),
             Output('time-slider', 'value'),
-            Output('file-info', 'children'),
             Output('chart-orderbook', 'figure'),
             Output('chart-btc', 'figure'),
-            Output('chart-returns', 'figure')
+            Output('chart-returns', 'figure'),
+            Output('chart-volume', 'figure')
         ],
         Input('file-selector', 'value')
     )
@@ -60,11 +60,10 @@ def register_callbacks(app):
         """Инициализировать все компоненты при смене файла"""
         if not filename:
             empty_fig = {'data': [], 'layout': {'paper_bgcolor': '#1e1e1e', 'plot_bgcolor': '#2d2d2d'}}
-            return [], 0, {}, 0, "No file loaded", empty_fig, empty_fig, empty_fig
+            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig
 
         cache = get_data_cache()
         df = cache.get_df(filename)
-        info = get_file_info(df, filename)
         cumulative_times = compute_cumulative_times(df)
 
         max_val = len(df) - 1
@@ -75,27 +74,13 @@ def register_callbacks(app):
             for i in range(0, max_val + 1, step)
         }
 
-        file_info = html.Div([
-            html.P(f"File: {info['filename']}", style={'margin': '5px 0'}),
-            html.P(f"Rows: {info['rows']:,}", style={'margin': '5px 0'}),
-            html.P(f"Columns: {info['columns']}", style={'margin': '5px 0'}),
-            html.P("Time range:", style={'margin': '5px 0'}),
-            html.P(
-                f"   Start: {info['time_start']}",
-                style={'margin': '2px 0 2px 10px', 'fontSize': '12px'}
-            ),
-            html.P(
-                f"   End: {info['time_end']}",
-                style={'margin': '2px 0 2px 10px', 'fontSize': '12px'}
-            ),
-        ])
-
-        # Создаем начальные графики (три независимых)
+        # Создаем начальные графики (четыре независимых)
         ob_fig = create_orderbook_chart(df, 0)
         btc_fig = create_btc_chart(df, 0)
         returns_fig = create_returns_chart(df, 0)
+        volume_fig = create_volume_chart(df, 0)
 
-        return cumulative_times, max_val, marks, 0, file_info, ob_fig, btc_fig, returns_fig
+        return cumulative_times, max_val, marks, 0, ob_fig, btc_fig, returns_fig, volume_fig
 
     # ========================================
     # Callback 2: Обработка Play/Pause кнопки
@@ -303,9 +288,7 @@ def register_callbacks(app):
     #
     # Trace indices in returns chart (create_returns_figure):
     #   0: Ret5s line (сглаженный тренд)
-    #   1: Ret1s line+markers (быстрый сигнал)
-    #   2: Current Ret1s marker
-    #   3: Current Ret5s marker
+    #   1: Ret1s line (быстрый сигнал)
     #
     @callback(
         Output('chart-returns', 'figure', allow_duplicate=True),
@@ -328,9 +311,6 @@ def register_callbacks(app):
         if not filename:
             return no_update
 
-        cache = get_data_cache()
-        trace_data = cache.compute_trace_data(filename, slider_value)
-
         patched_fig = Patch()
 
         # Active-Track: авто-скролл returns
@@ -340,30 +320,52 @@ def register_callbacks(app):
             x_max = slider_value + half_window
             patched_fig['layout']['xaxis']['range'] = [x_min, x_max]
 
-        # Current Ret1s marker (trace 2)
-        patched_fig['data'][2]['x'] = trace_data['ret1s_x']
-        patched_fig['data'][2]['y'] = trace_data['ret1s_y']
-
-        # Current Ret5s marker (trace 3)
-        patched_fig['data'][3]['x'] = trace_data['ret5s_x']
-        patched_fig['data'][3]['y'] = trace_data['ret5s_y']
-
-        # Обновляем цвет маркера Ret1s в зависимости от значения
-        if trace_data['ret1s_y']:
-            ret1s_val = trace_data['ret1s_y'][0]
-            if ret1s_val > 0.10:
-                point_color = '#00FF64'  # Ярко-зеленый (сильный UP)
-            elif ret1s_val < -0.10:
-                point_color = '#FF6464'  # Ярко-красный (сильный DOWN)
-            elif abs(ret1s_val) > 0.05:
-                point_color = '#FFB300'  # Оранжевый (импульс)
-            else:
-                point_color = '#00BCD4'  # Голубой (спокойный)
-
-            patched_fig['data'][2]['marker']['color'] = point_color
-
         # Заголовок Returns
         patched_fig['layout']['title']['text'] = "Ret1s & Ret5s"
+
+        return patched_fig
+
+    # ========================================
+    # Callback 4d: Обновление Volume графика через Patch
+    # ========================================
+    #
+    # Trace indices in volume chart (create_volume_figure):
+    #   0: Volume 5s line
+    #   1: Volume 1s line
+    #   2: VolMA 30s line
+    #
+    @callback(
+        Output('chart-volume', 'figure', allow_duplicate=True),
+        Input('time-slider', 'value'),
+        [
+            State('file-selector', 'value'),
+            State('playback-state', 'data'),
+            State('active-track-checklist', 'value'),
+            State('active-track-zoom-slider', 'value')
+        ],
+        prevent_initial_call=True
+    )
+    def update_volume_on_slider(slider_value, filename, playback_state, active_track, zoom_level):
+        """Обновить Volume только при РУЧНОМ движении слайдера"""
+
+        # Skip if playback is active (JS handles updates)
+        if playback_state and playback_state.get('is_playing'):
+            return no_update
+
+        if not filename:
+            return no_update
+
+        patched_fig = Patch()
+
+        # Active-Track: авто-скролл volume
+        if active_track and 'enabled' in active_track:
+            half_window = zoom_level if zoom_level else 150
+            x_min = max(0, slider_value - half_window)
+            x_max = slider_value + half_window
+            patched_fig['layout']['xaxis']['range'] = [x_min, x_max]
+
+        # Заголовок Volume
+        patched_fig['layout']['title']['text'] = "Volume (USDT)"
 
         return patched_fig
 

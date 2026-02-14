@@ -155,7 +155,6 @@ def create_right_panel():
     return html.Div([
         create_file_selector(),
         create_market_timer(),
-        create_file_info_panel(),
         create_playback_controls(),
         create_time_slider(),
         create_performance_settings(),
@@ -165,5 +164,9 @@ def create_right_panel():
         'padding': '20px',
         'backgroundColor': '#252525',
         'borderLeft': '1px solid #444',
-        'minWidth': '280px'
+        'minWidth': '280px',
+        'position': 'sticky',
+        'top': '0',
+        'height': '100vh',
+        'overflowY': 'auto'
     })

@@ -20,7 +20,7 @@ def create_header():
 
 
 def create_left_panel():
-    """Создать левую панель с тремя независимыми графиками"""
+    """Создать левую панель с четырьмя независимыми графиками"""
     return html.Div([
         # Orderbook chart (UP/DOWN orderbook + Ask prices)
         dcc.Graph(id='chart-orderbook', style={'height': '700px', 'width': '100%'}),
@@ -29,7 +29,10 @@ def create_left_panel():
         dcc.Graph(id='chart-btc', style={'height': '700px', 'width': '100%'}),
 
         # Returns chart (Momentum / Returns)
-        dcc.Graph(id='chart-returns', style={'height': '700px', 'width': '100%'}),
+        dcc.Graph(id='chart-returns', style={'height': '450px', 'width': '100%'}),
+
+        # Volume chart (V1s, V5s, VolMA)
+        dcc.Graph(id='chart-volume', style={'height': '450px', 'width': '100%'}),
     ], style={'flex': '3', 'padding': '15px'})
 
 

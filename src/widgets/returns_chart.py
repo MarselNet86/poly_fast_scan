@@ -119,71 +119,18 @@ def add_returns_traces(fig, df, row_idx):
         row=4, col=1
     )
 
-    # === Ret1s - быстрый сигнал (тонкая линия + точки) ===
+    # === Ret1s - быстрый сигнал (линия) ===
     fig.add_trace(
         go.Scatter(
             x=[i for i, m in enumerate(ret1s_mask) if m],
             y=[float(v) for v, m in zip(ret1s, ret1s_mask) if m],
-            mode='lines+markers',
+            mode='lines',
             name='Ret 1s (сигнал)',
-            line=dict(color='#00BCD4', width=1),  # Голубая тонкая линия
-            marker=dict(size=3, color='#00BCD4'),
+            line=dict(color='#00BCD4', width=2),
             hovertemplate='Ret1s: %{y:.3f} bp<extra></extra>'
         ),
         row=4, col=1
     )
-
-    # === Текущая точка Ret1s (выделенная) ===
-    current_ret1s = ret1s[row_idx] if row_idx < len(ret1s) else np.nan
-    if pd.notna(current_ret1s):
-        # Определяем цвет точки в зависимости от значения
-        if current_ret1s > 0.10:
-            point_color = '#00FF64'  # Ярко-зеленый (сильный UP)
-        elif current_ret1s < -0.10:
-            point_color = '#FF6464'  # Ярко-красный (сильный DOWN)
-        elif abs(current_ret1s) > 0.05:
-            point_color = '#FFB300'  # Оранжевый (импульс)
-        else:
-            point_color = '#00BCD4'  # Голубой (спокойный)
-
-        fig.add_trace(
-            go.Scatter(
-                x=[row_idx],
-                y=[float(current_ret1s)],
-                mode='markers',
-                name='Current Ret1s',
-                marker=dict(
-                    size=12,
-                    color=point_color,
-                    symbol='circle',
-                    line=dict(color='white', width=2)
-                ),
-                hovertemplate=f'Текущий Ret1s: {float(current_ret1s):.3f} bp<extra></extra>',
-                showlegend=False
-            ),
-            row=4, col=1
-        )
-
-    # === Текущая точка Ret5s (выделенная) ===
-    current_ret5s = ret5s[row_idx] if row_idx < len(ret5s) else np.nan
-    if pd.notna(current_ret5s):
-        fig.add_trace(
-            go.Scatter(
-                x=[row_idx],
-                y=[float(current_ret5s)],
-                mode='markers',
-                name='Current Ret5s',
-                marker=dict(
-                    size=10,
-                    color='#9C27B0',
-                    symbol='diamond',
-                    line=dict(color='white', width=2)
-                ),
-                hovertemplate=f'Текущий Ret5s: {float(current_ret5s):.3f} bp<extra></extra>',
-                showlegend=False
-            ),
-            row=4, col=1
-        )
 
     # === Layout для подграфика Returns ===
     fig.update_yaxes(
@@ -280,68 +227,13 @@ def create_returns_figure(df, row_idx):
         go.Scatter(
             x=[i for i, m in enumerate(ret1s_mask) if m],
             y=[float(v) for v, m in zip(ret1s, ret1s_mask) if m],
-            mode='lines+markers',
+            mode='lines',
             name='Ret 1s (сигнал)',
-            line=dict(color='#00BCD4', width=1),
-            marker=dict(size=3, color='#00BCD4'),
+            line=dict(color='#00BCD4', width=2),
             hovertemplate='Ret1s: %{y:.3f} bp<extra></extra>'
         ),
         row=1, col=1
     )
-
-    # === Trace 2: Текущая точка Ret1s ===
-    current_ret1s = ret1s[row_idx] if row_idx < len(ret1s) else np.nan
-    if pd.notna(current_ret1s):
-        # Определяем цвет
-        if current_ret1s > 0.10:
-            point_color = '#00FF64'
-        elif current_ret1s < -0.10:
-            point_color = '#FF6464'
-        elif abs(current_ret1s) > 0.05:
-            point_color = '#FFB300'
-        else:
-            point_color = '#00BCD4'
-
-        fig.add_trace(
-            go.Scatter(
-                x=[row_idx],
-                y=[float(current_ret1s)],
-                mode='markers',
-                name='Current Ret1s',
-                marker=dict(size=12, color=point_color, symbol='circle', line=dict(color='white', width=2)),
-                hovertemplate=f'Текущий Ret1s: {float(current_ret1s):.3f} bp<extra></extra>',
-                showlegend=False
-            ),
-            row=1, col=1
-        )
-    else:
-        # Пустой trace для сохранения индексов
-        fig.add_trace(
-            go.Scatter(x=[], y=[], mode='markers', showlegend=False),
-            row=1, col=1
-        )
-
-    # === Trace 3: Текущая точка Ret5s ===
-    current_ret5s = ret5s[row_idx] if row_idx < len(ret5s) else np.nan
-    if pd.notna(current_ret5s):
-        fig.add_trace(
-            go.Scatter(
-                x=[row_idx],
-                y=[float(current_ret5s)],
-                mode='markers',
-                name='Current Ret5s',
-                marker=dict(size=10, color='#9C27B0', symbol='diamond', line=dict(color='white', width=2)),
-                hovertemplate=f'Текущий Ret5s: {float(current_ret5s):.3f} bp<extra></extra>',
-                showlegend=False
-            ),
-            row=1, col=1
-        )
-    else:
-        # Пустой trace для сохранения индексов
-        fig.add_trace(
-            go.Scatter(x=[], y=[], mode='markers', showlegend=False),
-            row=1, col=1
-        )
 
     # === Layout ===
     fig.update_layout(
