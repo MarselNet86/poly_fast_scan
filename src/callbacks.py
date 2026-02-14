@@ -6,7 +6,7 @@ Callback функции для интерактивности Dash прилож�
 import time
 from dash import html, callback, Output, Input, State, ctx, no_update, Patch
 from .data_loader import load_data, compute_cumulative_times
-from .charts import create_orderbook_chart, create_btc_chart, create_returns_chart, create_volume_chart, create_volatility_chart, create_volume_spike_chart, create_p_vwap_chart
+from .charts import create_orderbook_chart, create_arbitrage_indicator_chart, create_depth_chart, create_btc_chart, create_latency_direction_chart, create_returns_chart, create_volume_chart, create_volatility_chart, create_volume_spike_chart, create_p_vwap_chart
 from .data_cache import get_data_cache
 
 
@@ -50,7 +50,10 @@ def register_callbacks(app):
             Output('time-slider', 'marks'),
             Output('time-slider', 'value'),
             Output('chart-orderbook', 'figure'),
+            Output('chart-arbitrage-indicator', 'figure'),
+            Output('chart-depth', 'figure'),
             Output('chart-btc', 'figure'),
+            Output('chart-latency-direction', 'figure'),
             Output('chart-returns', 'figure'),
             Output('chart-volume', 'figure'),
             Output('chart-volatility', 'figure'),
@@ -63,7 +66,7 @@ def register_callbacks(app):
         """Инициализировать все компоненты при смене файла"""
         if not filename:
             empty_fig = {'data': [], 'layout': {'paper_bgcolor': '#1e1e1e', 'plot_bgcolor': '#2d2d2d'}}
-            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
+            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
         cache = get_data_cache()
         df = cache.get_df(filename)
@@ -77,16 +80,19 @@ def register_callbacks(app):
             for i in range(0, max_val + 1, step)
         }
 
-        # Создаем начальные графики (семь независимых)
+        # Создаем начальные графики (десять независимых)
         ob_fig = create_orderbook_chart(df, 0)
+        arbitrage_indicator_fig = create_arbitrage_indicator_chart(df, 0)
+        depth_fig = create_depth_chart(df, 0)
         btc_fig = create_btc_chart(df, 0)
+        latency_direction_fig = create_latency_direction_chart(df, 0)
         returns_fig = create_returns_chart(df, 0)
         volume_fig = create_volume_chart(df, 0)
         volatility_fig = create_volatility_chart(df, 0)
         volume_spike_fig = create_volume_spike_chart(df, 0)
         p_vwap_fig = create_p_vwap_chart(df, 0)
 
-        return cumulative_times, max_val, marks, 0, ob_fig, btc_fig, returns_fig, volume_fig, volatility_fig, volume_spike_fig, p_vwap_fig
+        return cumulative_times, max_val, marks, 0, ob_fig, arbitrage_indicator_fig, depth_fig, btc_fig, latency_direction_fig, returns_fig, volume_fig, volatility_fig, volume_spike_fig, p_vwap_fig
 
     # ========================================
     # Callback 2: Обработка Play/Pause кнопки
@@ -226,7 +232,87 @@ def register_callbacks(app):
         return patched_fig
 
     # ========================================
-    # Callback 4b: Обновление BTC графика через Patch
+    # Callback 4b: Обновление Arbitrage Indicator графика через Patch
+    # ========================================
+    @callback(
+        Output('chart-arbitrage-indicator', 'figure', allow_duplicate=True),
+        Input('time-slider', 'value'),
+        [
+            State('file-selector', 'value'),
+            State('playback-state', 'data'),
+            State('active-track-checklist', 'value'),
+            State('active-track-zoom-slider', 'value')
+        ],
+        prevent_initial_call=True
+    )
+    def update_arbitrage_indicator_on_slider(slider_value, filename, playback_state, active_track, zoom_level):
+        """
+        Обновить график Arbitrage Indicator при изменении слайдера.
+        Пропускает обновление во время playback.
+        """
+        # Пропустить если идёт playback
+        if playback_state and playback_state.get('is_playing'):
+            return no_update
+
+        if not filename:
+            return no_update
+
+        patched_fig = Patch()
+
+        # Active-Track: автопрокрутка по X
+        if active_track and 'enabled' in active_track:
+            half_window = zoom_level if zoom_level else 150
+            x_min = max(0, slider_value - half_window)
+            x_max = slider_value + half_window
+            patched_fig['layout']['xaxis']['range'] = [x_min, x_max]
+
+        # Обновить заголовок
+        patched_fig['layout']['title']['text'] = "Arbitrage Indicator (Арбитраж)"
+
+        return patched_fig
+
+    # ========================================
+    # Callback 4b2: Обновление Depth графика через Patch
+    # ========================================
+    @callback(
+        Output('chart-depth', 'figure', allow_duplicate=True),
+        Input('time-slider', 'value'),
+        [
+            State('file-selector', 'value'),
+            State('playback-state', 'data'),
+            State('active-track-checklist', 'value'),
+            State('active-track-zoom-slider', 'value')
+        ],
+        prevent_initial_call=True
+    )
+    def update_depth_on_slider(slider_value, filename, playback_state, active_track, zoom_level):
+        """
+        Обновить график Depth при изменении слайдера.
+        Пропускает обновление во время playback.
+        """
+        # Пропустить если идёт playback
+        if playback_state and playback_state.get('is_playing'):
+            return no_update
+
+        if not filename:
+            return no_update
+
+        patched_fig = Patch()
+
+        # Active-Track: автопрокрутка по X
+        if active_track and 'enabled' in active_track:
+            half_window = zoom_level if zoom_level else 150
+            x_min = max(0, slider_value - half_window)
+            x_max = slider_value + half_window
+            patched_fig['layout']['xaxis']['range'] = [x_min, x_max]
+
+        # Обновить заголовок
+        patched_fig['layout']['title']['text'] = "Depth (Глубина ликвидности)"
+
+        return patched_fig
+
+    # ========================================
+    # Callback 4c: Обновление BTC графика через Patch
     # ========================================
     #
     # Trace indices in btc chart (create_btc_figure):
@@ -289,7 +375,47 @@ def register_callbacks(app):
         return patched_fig
 
     # ========================================
-    # Callback 4c: Обновление Returns графика через Patch
+    # Callback 4c: Обновление Latency Direction графика через Patch
+    # ========================================
+    @callback(
+        Output('chart-latency-direction', 'figure', allow_duplicate=True),
+        Input('time-slider', 'value'),
+        [
+            State('file-selector', 'value'),
+            State('playback-state', 'data'),
+            State('active-track-checklist', 'value'),
+            State('active-track-zoom-slider', 'value')
+        ],
+        prevent_initial_call=True
+    )
+    def update_latency_direction_on_slider(slider_value, filename, playback_state, active_track, zoom_level):
+        """
+        Обновить график Latency Direction при изменении слайдера.
+        Пропускает обновление во время playback.
+        """
+        # Пропустить если идёт playback
+        if playback_state and playback_state.get('is_playing'):
+            return no_update
+
+        if not filename:
+            return no_update
+
+        patched_fig = Patch()
+
+        # Active-Track: автопрокрутка по X
+        if active_track and 'enabled' in active_track:
+            half_window = zoom_level if zoom_level else 150
+            x_min = max(0, slider_value - half_window)
+            x_max = slider_value + half_window
+            patched_fig['layout']['xaxis']['range'] = [x_min, x_max]
+
+        # Обновить заголовок
+        patched_fig['layout']['title']['text'] = "Latency Direction (запаздывание оракула)"
+
+        return patched_fig
+
+    # ========================================
+    # Callback 4d: Обновление Returns графика через Patch
     # ========================================
     #
     # Trace indices in returns chart (create_returns_figure):

@@ -25,8 +25,17 @@ def create_left_panel():
         # Orderbook chart (UP/DOWN orderbook + Ask prices)
         dcc.Graph(id='chart-orderbook', style={'height': '700px', 'width': '100%'}),
 
+        # Arbitrage Indicator chart
+        dcc.Graph(id='chart-arbitrage-indicator', style={'height': '450px', 'width': '100%'}),
+
+        # Depth chart
+        dcc.Graph(id='chart-depth', style={'height': '450px', 'width': '100%'}),
+
         # BTC chart (BTC Price + Lag)
         dcc.Graph(id='chart-btc', style={'height': '700px', 'width': '100%'}),
+
+        # Latency Direction chart (oracle lag indicator)
+        dcc.Graph(id='chart-latency-direction', style={'height': '450px', 'width': '100%'}),
 
         # Returns chart (Momentum / Returns)
         dcc.Graph(id='chart-returns', style={'height': '450px', 'width': '100%'}),

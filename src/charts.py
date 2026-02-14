@@ -24,6 +24,9 @@ from .widgets.volume_chart import create_volume_figure
 from .widgets.volatility_chart import create_volatility_figure
 from .widgets.volume_spike_chart import create_volume_spike_figure
 from .widgets.p_vwap_chart import create_p_vwap_figure
+from .widgets.latency_direction_chart import create_latency_direction_figure
+from .widgets.arbitrage_indicator_chart import create_arbitrage_indicator_figure
+from .widgets.depth_chart import create_depth_figure
 
 
 def create_orderbook_chart(df, row_idx):
@@ -38,6 +41,30 @@ def create_orderbook_chart(df, row_idx):
     return fig
 
 
+def create_arbitrage_indicator_chart(df, row_idx):
+    """
+    Создать независимый график Arbitrage Indicator для main view.
+
+    Returns:
+        go.Figure: Plotly фигура с индикатором арбитража
+    """
+    fig = create_arbitrage_indicator_figure(df, row_idx)
+    fig.update_layout(height=450)
+    return fig
+
+
+def create_depth_chart(df, row_idx):
+    """
+    Создать независимый график Depth для main view.
+
+    Returns:
+        go.Figure: Plotly фигура с глубиной ликвидности
+    """
+    fig = create_depth_figure(df, row_idx)
+    fig.update_layout(height=450)
+    return fig
+
+
 def create_btc_chart(df, row_idx):
     """
     Создать независимый график BTC Price + Lag для main view.
@@ -47,6 +74,18 @@ def create_btc_chart(df, row_idx):
     """
     fig = create_btc_figure(df, row_idx)
     fig.update_layout(height=700)
+    return fig
+
+
+def create_latency_direction_chart(df, row_idx):
+    """
+    Создать независимый график Latency Direction для main view.
+
+    Returns:
+        go.Figure: Plotly фигура с индикатором запаздывания оракула
+    """
+    fig = create_latency_direction_figure(df, row_idx)
+    fig.update_layout(height=450)
     return fig
 
 
