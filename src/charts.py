@@ -29,12 +29,11 @@ from .widgets.p_vwap_chart import create_p_vwap_figure
 def create_orderbook_chart(df, row_idx):
     """
     Создать независимый график Orderbook + Ask Prices для main view.
-    Используется та же структура что и pop-out версия.
 
     Returns:
         go.Figure: Plotly фигура со стаканами и графиком ask prices
     """
-    fig = create_orderbook_popout_figure(df, row_idx)
+    fig = create_orderbook_figure(df, row_idx)
     fig.update_layout(height=700)
     return fig
 
@@ -42,12 +41,11 @@ def create_orderbook_chart(df, row_idx):
 def create_btc_chart(df, row_idx):
     """
     Создать независимый график BTC Price + Lag для main view.
-    Используется та же структура что и pop-out версия.
 
     Returns:
         go.Figure: Plotly фигура с графиками BTC price и lag
     """
-    fig = create_btc_popout_figure(df, row_idx)
+    fig = create_btc_figure(df, row_idx)
     fig.update_layout(height=700)
     return fig
 
@@ -112,9 +110,9 @@ def create_p_vwap_chart(df, row_idx):
     return fig
 
 
-def create_orderbook_popout_figure(df, row_idx):
+def create_orderbook_figure(df, row_idx):
     """
-    Создать фигуру для pop-out окна Orderbook (стаканы + ask prices)
+    Создать фигуру Orderbook (стаканы + ask prices)
 
     Args:
         df: DataFrame с данными
@@ -150,7 +148,7 @@ def create_orderbook_popout_figure(df, row_idx):
     add_orderbook_traces(fig, data, anomaly_threshold, global_max)
 
     # Добавляем ask prices (row 2)
-    _add_ask_prices_for_popout(fig, df, row_idx)
+    _add_ask_prices(fig, df, row_idx)
 
     up_pressure, up_bid_total, up_ask_total = calculate_pressure(
         data['up']['bid_sizes'], data['up']['ask_sizes']
@@ -175,9 +173,9 @@ def create_orderbook_popout_figure(df, row_idx):
     return fig
 
 
-def create_btc_popout_figure(df, row_idx):
+def create_btc_figure(df, row_idx):
     """
-    Создать фигуру для pop-out окна BTC (btc price + lag)
+    Создать фигуру BTC (btc price + lag)
 
     Args:
         df: DataFrame с данными
@@ -194,10 +192,10 @@ def create_btc_popout_figure(df, row_idx):
     )
 
     # Добавляем btc price (row 1)
-    _add_btc_for_popout(fig, df, row_idx)
+    _add_btc(fig, df, row_idx)
 
     # Добавляем lag (row 2)
-    _add_lag_for_popout(fig, df, row_idx)
+    _add_lag(fig, df, row_idx)
 
     fig.update_layout(
         title='BTC Price & Lag',
@@ -212,8 +210,8 @@ def create_btc_popout_figure(df, row_idx):
     return fig
 
 
-def _add_ask_prices_for_popout(fig, df, row_idx):
-    """Добавить ask prices график в pop-out (row 2)"""
+def _add_ask_prices(fig, df, row_idx):
+    """Добавить ask prices график (row 2)"""
     # UP Ask Price - зеленая
     up_ask_prices = df['up_ask_1_price'].values if 'up_ask_1_price' in df.columns else np.array([np.nan] * len(df))
     up_mask = ~pd.isna(up_ask_prices)
@@ -272,8 +270,8 @@ def _add_ask_prices_for_popout(fig, df, row_idx):
     fig.update_yaxes(row=2, col=1, gridcolor='#444')
 
 
-def _add_btc_for_popout(fig, df, row_idx):
-    """Добавить BTC price график в pop-out (row 1)"""
+def _add_btc(fig, df, row_idx):
+    """Добавить BTC price график (row 1)"""
     x_indices = list(range(len(df)))
 
     # Binance BTC
@@ -332,8 +330,8 @@ def _add_btc_for_popout(fig, df, row_idx):
     fig.update_yaxes(row=1, col=1, gridcolor='#444')
 
 
-def _add_lag_for_popout(fig, df, row_idx):
-    """Добавить Lag график в pop-out (row 2)"""
+def _add_lag(fig, df, row_idx):
+    """Добавить Lag график (row 2)"""
     lag_values = df['lag'].values if 'lag' in df.columns else np.array([np.nan] * len(df))
     lag_mask = ~pd.isna(lag_values)
 

@@ -145,7 +145,7 @@ def register_callbacks(app):
     # Callback 3: Обновление Orderbook графика через Patch
     # ========================================
     #
-    # Trace indices in orderbook chart (create_orderbook_popout_figure):
+    # Trace indices in orderbook chart (create_orderbook_figure):
     #   0: UP Bids (bar)
     #   1: UP Asks (bar)
     #   2: DOWN Bids (bar)
@@ -229,7 +229,7 @@ def register_callbacks(app):
     # Callback 4b: Обновление BTC графика через Patch
     # ========================================
     #
-    # Trace indices in btc chart (create_btc_popout_figure):
+    # Trace indices in btc chart (create_btc_figure):
     #   0: Binance BTC line
     #   1: Oracle BTC line
     #   2: Current Binance marker
