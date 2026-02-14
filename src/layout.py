@@ -40,6 +40,9 @@ def create_left_panel():
         # Slope chart
         dcc.Graph(id='chart-slope', style={'height': '450px', 'width': '100%'}),
 
+        # EatFlow chart
+        dcc.Graph(id='chart-eatflow', style={'height': '450px', 'width': '100%'}),
+
         # Depth chart
         dcc.Graph(id='chart-depth', style={'height': '450px', 'width': '100%'}),
 
