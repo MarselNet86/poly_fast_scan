@@ -23,6 +23,7 @@ from .widgets.returns_chart import create_returns_figure
 from .widgets.volume_chart import create_volume_figure
 from .widgets.volatility_chart import create_volatility_figure
 from .widgets.volume_spike_chart import create_volume_spike_figure
+from .widgets.p_vwap_chart import create_p_vwap_figure
 
 
 def create_orderbook_chart(df, row_idx):
@@ -95,6 +96,18 @@ def create_volume_spike_chart(df, row_idx):
         go.Figure: Plotly фигура с графиком всплесков объёма
     """
     fig = create_volume_spike_figure(df, row_idx)
+    fig.update_layout(height=450)
+    return fig
+
+
+def create_p_vwap_chart(df, row_idx):
+    """
+    Создать независимый график P/VWAP для main view.
+
+    Returns:
+        go.Figure: Plotly фигура с графиком отклонения от VWAP
+    """
+    fig = create_p_vwap_figure(df, row_idx)
     fig.update_layout(height=450)
     return fig
 

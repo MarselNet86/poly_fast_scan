@@ -39,6 +39,9 @@ def create_left_panel():
 
         # Volume Spike chart
         dcc.Graph(id='chart-volume-spike', style={'height': '450px', 'width': '100%'}),
+
+        # P/VWAP chart (% отклонение от VWAP)
+        dcc.Graph(id='chart-p-vwap', style={'height': '450px', 'width': '100%'}),
     ], style={'flex': '3', 'padding': '15px'})
 
 
