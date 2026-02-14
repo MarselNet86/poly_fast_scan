@@ -25,6 +25,8 @@ from .widgets.volatility_chart import create_volatility_figure
 from .widgets.volume_spike_chart import create_volume_spike_figure
 from .widgets.p_vwap_chart import create_p_vwap_figure
 from .widgets.latency_direction_chart import create_latency_direction_figure
+from .widgets.imbalance_chart import create_imbalance_figure
+from .widgets.microprice_chart import create_microprice_figure
 from .widgets.arbitrage_indicator_chart import create_arbitrage_indicator_figure
 from .widgets.spread_chart import create_spread_figure
 
@@ -63,6 +65,30 @@ def create_spread_chart(df, row_idx):
         go.Figure: Plotly фигура со спредом
     """
     fig = create_spread_figure(df, row_idx)
+    fig.update_layout(height=450)
+    return fig
+
+
+def create_imbalance_chart(df, row_idx):
+    """
+    Создать независимый график Imbalance для main view.
+
+    Returns:
+        go.Figure: Plotly фигура с имбалансом
+    """
+    fig = create_imbalance_figure(df, row_idx)
+    fig.update_layout(height=450)
+    return fig
+
+
+def create_microprice_chart(df, row_idx):
+    """
+    Создать независимый график Microprice для main view.
+
+    Returns:
+        go.Figure: Plotly фигура с микроценой
+    """
+    fig = create_microprice_figure(df, row_idx)
     fig.update_layout(height=450)
     return fig
 
