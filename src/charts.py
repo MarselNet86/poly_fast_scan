@@ -27,6 +27,7 @@ from .widgets.p_vwap_chart import create_p_vwap_figure
 from .widgets.latency_direction_chart import create_latency_direction_figure
 from .widgets.imbalance_chart import create_imbalance_figure
 from .widgets.microprice_chart import create_microprice_figure
+from .widgets.slope_chart import create_slope_figure
 from .widgets.arbitrage_indicator_chart import create_arbitrage_indicator_figure
 from .widgets.spread_chart import create_spread_figure
 
@@ -89,6 +90,18 @@ def create_microprice_chart(df, row_idx):
         go.Figure: Plotly фигура с микроценой
     """
     fig = create_microprice_figure(df, row_idx)
+    fig.update_layout(height=450)
+    return fig
+
+
+def create_slope_chart(df, row_idx):
+    """
+    Создать независимый график Slope для main view.
+
+    Returns:
+        go.Figure: Plotly фигура с наклоном (slope)
+    """
+    fig = create_slope_figure(df, row_idx)
     fig.update_layout(height=450)
     return fig
 

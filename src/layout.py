@@ -37,6 +37,9 @@ def create_left_panel():
         # Imbalance chart
         dcc.Graph(id='chart-imbalance', style={'height': '450px', 'width': '100%'}),
 
+        # Slope chart
+        dcc.Graph(id='chart-slope', style={'height': '450px', 'width': '100%'}),
+
         # Depth chart
         dcc.Graph(id='chart-depth', style={'height': '450px', 'width': '100%'}),
 
