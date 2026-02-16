@@ -13,6 +13,6 @@ workspace.xml
 
 # Project specific
 files/
-
+results/
 # Claude Code
 .claude/
