@@ -166,7 +166,6 @@ def create_latency_direction_figure(df, row_idx):
 
     # Настройка осей
     fig.update_yaxes(
-        title_text='×1000',
         title_font=dict(color='white', size=12),
         tickfont=dict(color='white'),
         gridcolor='rgba(255,255,255,0.1)',

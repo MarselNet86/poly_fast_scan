@@ -171,7 +171,6 @@ def create_p_vwap_figure(df, row_idx):
 
     # Настройка осей
     fig.update_yaxes(
-        title_text='%',
         title_font=dict(color='white', size=12),
         tickfont=dict(color='white'),
         gridcolor='rgba(255,255,255,0.1)',

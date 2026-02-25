@@ -352,7 +352,7 @@ def create_microprice_figure(df, row_idx, trader_data: Optional[Dict] = None):
             x=1,
             bgcolor='rgba(0,0,0,0.5)'
         ),
-        margin=dict(l=50, r=20, t=60, b=40),
+        margin=dict(l=20, r=20, t=60, b=40),
         hovermode='x unified'
     )
 
