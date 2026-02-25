@@ -31,6 +31,7 @@ from .widgets.slope_chart import create_slope_figure
 from .widgets.eatflow_chart import create_eatflow_figure
 from .widgets.arbitrage_indicator_chart import create_arbitrage_indicator_figure
 from .widgets.spread_chart import create_spread_figure
+from .widgets.portfolio_chart import create_portfolio_figure
 
 from .widgets.depth_chart import create_depth_figure
 
@@ -96,6 +97,23 @@ def create_microprice_chart(df, row_idx, trader_data=None):
         go.Figure: Plotly фигура с микроценой
     """
     fig = create_microprice_figure(df, row_idx, trader_data=trader_data)
+    fig.update_layout(height=450)
+    return fig
+
+
+def create_portfolio_chart(df, row_idx, trader_data=None):
+    """
+    Создать независимый график Портфель трейдера для main view.
+
+    Args:
+        df: DataFrame с данными
+        row_idx: Текущий индекс строки
+        trader_data: Optional dict с данными трейдера
+
+    Returns:
+        go.Figure: Plotly фигура с портфелем трейдера
+    """
+    fig = create_portfolio_figure(df, row_idx, trader_data=trader_data)
     fig.update_layout(height=450)
     return fig
 
