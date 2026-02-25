@@ -179,6 +179,7 @@ def create_latency_direction_figure(df, row_idx):
         title_font=dict(color='white', size=12),
         tickfont=dict(color='white'),
         gridcolor='rgba(255,255,255,0.1)',
+        range=[-100, len(df)],
         row=1, col=1
     )
 

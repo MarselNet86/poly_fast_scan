@@ -352,7 +352,7 @@ def create_microprice_figure(df, row_idx, trader_data: Optional[Dict] = None):
             x=1,
             bgcolor='rgba(0,0,0,0.5)'
         ),
-        margin=dict(l=20, r=20, t=60, b=40),
+        margin=dict(l=50, r=20, t=60, b=40),
         hovermode='x unified'
     )
 
@@ -361,6 +361,8 @@ def create_microprice_figure(df, row_idx, trader_data: Optional[Dict] = None):
         title_font=dict(color='white', size=12),
         tickfont=dict(color='white'),
         gridcolor='rgba(255,255,255,0.1)',
+        tickformat='.4f',
+        automargin=False,
         row=1, col=1
     )
 
@@ -368,6 +370,7 @@ def create_microprice_figure(df, row_idx, trader_data: Optional[Dict] = None):
         title_font=dict(color='white', size=12),
         tickfont=dict(color='white'),
         gridcolor='rgba(255,255,255,0.1)',
+        range=[-100, len(df)],
         row=1, col=1
     )
 
