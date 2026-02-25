@@ -29,6 +29,9 @@ def create_left_panel():
         # Microprice chart
         dcc.Graph(id='chart-microprice', figure={}, style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
+        # EV chart (Expected Value = UP + DOWN price)
+        dcc.Graph(id='chart-ev', figure={}, style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
+
         # Trader Portfolio chart (Портфель трейдера)
         dcc.Graph(id='chart-portfolio', figure={}, style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 

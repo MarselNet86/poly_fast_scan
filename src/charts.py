@@ -27,6 +27,7 @@ from .widgets.p_vwap_chart import create_p_vwap_figure
 from .widgets.latency_direction_chart import create_latency_direction_figure
 from .widgets.imbalance_chart import create_imbalance_figure
 from .widgets.microprice_chart import create_microprice_figure
+from .widgets.ev_chart import create_ev_figure
 from .widgets.slope_chart import create_slope_figure
 from .widgets.eatflow_chart import create_eatflow_figure
 from .widgets.arbitrage_indicator_chart import create_arbitrage_indicator_figure
@@ -97,6 +98,23 @@ def create_microprice_chart(df, row_idx, trader_data=None):
         go.Figure: Plotly фигура с микроценой
     """
     fig = create_microprice_figure(df, row_idx, trader_data=trader_data)
+    fig.update_layout(height=450)
+    return fig
+
+
+def create_ev_chart(df, row_idx, trader_data=None):
+    """
+    Создать независимый график EV для main view.
+
+    Args:
+        df: DataFrame с данными
+        row_idx: Текущий индекс строки
+        trader_data: Optional dict с данными трейдера
+
+    Returns:
+        go.Figure: Plotly фигура с EV
+    """
+    fig = create_ev_figure(df, row_idx, trader_data=trader_data)
     fig.update_layout(height=450)
     return fig
 

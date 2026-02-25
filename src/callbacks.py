@@ -6,7 +6,7 @@ Callback функции для интерактивности Dash прилож�
 import time
 from dash import html, callback, Output, Input, State, ctx, no_update, Patch
 from .data_loader import load_data, compute_cumulative_times
-from .charts import create_orderbook_chart, create_arbitrage_indicator_chart, create_spread_chart, create_imbalance_chart, create_microprice_chart, create_portfolio_chart, create_slope_chart, create_eatflow_chart, create_depth_chart, create_btc_chart, create_latency_direction_chart, create_returns_chart, create_volume_chart, create_volatility_chart, create_volume_spike_chart, create_p_vwap_chart
+from .charts import create_orderbook_chart, create_arbitrage_indicator_chart, create_spread_chart, create_imbalance_chart, create_microprice_chart, create_ev_chart, create_portfolio_chart, create_slope_chart, create_eatflow_chart, create_depth_chart, create_btc_chart, create_latency_direction_chart, create_returns_chart, create_volume_chart, create_volatility_chart, create_volume_spike_chart, create_p_vwap_chart
 from .data_cache import get_data_cache
 from .api.polymarket_api import search_market, fetch_trades, parse_trades, TRADER_ADDRESS
 from .utils.filename_parser import extract_game_datetime_from_csv, build_market_query
@@ -57,6 +57,7 @@ def register_callbacks(app):
             Output('chart-spread', 'figure'),
             Output('chart-imbalance', 'figure'),
             Output('chart-microprice', 'figure'),
+            Output('chart-ev', 'figure'),
             Output('chart-portfolio', 'figure'),
             Output('chart-slope', 'figure'),
             Output('chart-eatflow', 'figure'),
@@ -77,7 +78,7 @@ def register_callbacks(app):
         """Инициализировать все компоненты при смене файла"""
         if not filename:
             empty_fig = {'data': [], 'layout': {'paper_bgcolor': '#1e1e1e', 'plot_bgcolor': '#2d2d2d'}}
-            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, None, {'is_loading': False}
+            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, None, {'is_loading': False}
 
         cache = get_data_cache()
         df = cache.get_df(filename)
@@ -148,6 +149,7 @@ def register_callbacks(app):
         spread_fig = create_spread_chart(df, 0)
         imbalance_fig = create_imbalance_chart(df, 0)
         microprice_fig = create_microprice_chart(df, 0, trader_data=trader_data)
+        ev_fig = create_ev_chart(df, 0, trader_data=trader_data)
         portfolio_fig = create_portfolio_chart(df, 0, trader_data=trader_data)
         slope_fig = create_slope_chart(df, 0)
         eatflow_fig = create_eatflow_chart(df, 0)
@@ -160,7 +162,7 @@ def register_callbacks(app):
         volume_spike_fig = create_volume_spike_chart(df, 0)
         p_vwap_fig = create_p_vwap_chart(df, 0)
 
-        return cumulative_times, max_val, marks, 0, ob_fig, arbitrage_indicator_fig, spread_fig, imbalance_fig, microprice_fig, portfolio_fig, slope_fig, eatflow_fig, depth_fig, btc_fig, latency_direction_fig, returns_fig, volume_fig, volatility_fig, volume_spike_fig, p_vwap_fig, trader_data, trader_loading_state
+        return cumulative_times, max_val, marks, 0, ob_fig, arbitrage_indicator_fig, spread_fig, imbalance_fig, microprice_fig, ev_fig, portfolio_fig, slope_fig, eatflow_fig, depth_fig, btc_fig, latency_direction_fig, returns_fig, volume_fig, volatility_fig, volume_spike_fig, p_vwap_fig, trader_data, trader_loading_state
 
     # ========================================
     # Callback 2: Обработка Play/Pause кнопки
@@ -500,6 +502,47 @@ def register_callbacks(app):
 
         # Обновить заголовок
         patched_fig['layout']['title']['text'] = "Портфель трейдера"
+
+        return patched_fig
+
+
+    # ========================================
+    # Callback 4b-new3c: Обновление EV графика через Patch
+    # ========================================
+    @callback(
+        Output('chart-ev', 'figure', allow_duplicate=True),
+        Input('time-slider', 'value'),
+        [
+            State('file-selector', 'value'),
+            State('playback-state', 'data'),
+            State('active-track-checklist', 'value'),
+            State('active-track-zoom-slider', 'value')
+        ],
+        prevent_initial_call=True
+    )
+    def update_ev_on_slider(slider_value, filename, playback_state, active_track, zoom_level):
+        """
+        Обновить график EV при изменении слайдера.
+        Пропускает обновление во время playback.
+        """
+        # Пропустить если идёт playback
+        if playback_state and playback_state.get('is_playing'):
+            return no_update
+
+        if not filename:
+            return no_update
+
+        patched_fig = Patch()
+
+        # Active-Track: автопрокрутка по X
+        if active_track and 'enabled' in active_track:
+            half_window = zoom_level if zoom_level else 150
+            x_min = max(0, slider_value - half_window)
+            x_max = slider_value + half_window
+            patched_fig['layout']['xaxis']['range'] = [x_min, x_max]
+
+        # Обновить заголовок
+        patched_fig['layout']['title']['text'] = "EV (Expected Value)"
 
         return patched_fig
 
@@ -1236,6 +1279,7 @@ def register_callbacks(app):
         [
             Input('chart-orderbook', 'clickData'),
             Input('chart-microprice', 'clickData'),
+            Input('chart-ev', 'clickData'),
             Input('chart-portfolio', 'clickData'),
             Input('chart-arbitrage-indicator', 'clickData'),
             Input('chart-spread', 'clickData'),
@@ -1356,6 +1400,7 @@ def register_callbacks(app):
         [
             Output('chart-orderbook', 'figure', allow_duplicate=True),
             Output('chart-microprice', 'figure', allow_duplicate=True),
+            Output('chart-ev', 'figure', allow_duplicate=True),
             Output('chart-portfolio', 'figure', allow_duplicate=True),
             Output('chart-arbitrage-indicator', 'figure', allow_duplicate=True),
             Output('chart-spread', 'figure', allow_duplicate=True),
@@ -1380,7 +1425,7 @@ def register_callbacks(app):
 
         if not crosshair_pos:
             # Убрать все линии
-            for _ in range(16):
+            for _ in range(17):
                 patched_fig = Patch()
                 patched_fig['layout']['shapes'] = []
                 patches.append(patched_fig)
@@ -1395,20 +1440,21 @@ def register_callbacks(app):
         chart_names = [
             'orderbook',      # 0: 2x2 subplots (4 квадранта + ask prices внизу)
             'microprice',     # 1: 1 subplot
-            'portfolio',      # 2: 1 subplot
-            'arbitrage',      # 3: 1 subplot
-            'spread',         # 4: 1 subplot
-            'imbalance',      # 5: 1 subplot
-            'slope',          # 6: 1 subplot
-            'eatflow',        # 7: 1 subplot
-            'depth',          # 8: 1 subplot
-            'btc',            # 9: 2 subplots (BTC + Lag)
-            'latency',        # 10: 1 subplot
-            'returns',        # 11: 1 subplot
-            'volume',         # 12: 1 subplot
-            'volatility',     # 13: 2 subplots (ATR + RVol)
-            'volume_spike',   # 14: 1 subplot
-            'p_vwap'          # 15: 1 subplot
+            'ev',             # 2: 1 subplot
+            'portfolio',      # 3: 1 subplot
+            'arbitrage',      # 4: 1 subplot
+            'spread',         # 5: 1 subplot
+            'imbalance',      # 6: 1 subplot
+            'slope',          # 7: 1 subplot
+            'eatflow',        # 8: 1 subplot
+            'depth',          # 9: 1 subplot
+            'btc',            # 10: 2 subplots (BTC + Lag)
+            'latency',        # 11: 1 subplot
+            'returns',        # 12: 1 subplot
+            'volume',         # 13: 1 subplot
+            'volatility',     # 14: 2 subplots (ATR + RVol)
+            'volume_spike',   # 15: 1 subplot
+            'p_vwap'          # 16: 1 subplot
         ]
 
         for idx, chart_name in enumerate(chart_names):

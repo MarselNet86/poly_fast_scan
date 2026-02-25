@@ -337,6 +337,41 @@ def create_microprice_figure(df, row_idx, trader_data: Optional[Dict] = None):
                 row=1, col=1
             )
 
+    # === Добавление фаз рынка (Фоновые области) ===
+    if 'timestamp_ms' in df.columns and len(df) > 0:
+        start_ts = df['timestamp_ms'].iloc[0]
+        elapsed_ms = df['timestamp_ms'].values - start_ts
+        
+        def get_idx(minutes):
+            ms = minutes * 60 * 1000
+            idx = np.where(elapsed_ms >= ms)[0]
+            return int(idx[0]) if len(idx) > 0 else len(df) - 1
+
+        p0 = 0
+        p4 = get_idx(4)
+        p9 = get_idx(9)
+        p13 = get_idx(13)
+        p15 = get_idx(15)
+        
+        phases = [
+            (p0, p4, "rgba(33, 150, 243, 0.12)", "0-4 min"),
+            (p4, p9, "rgba(244, 67, 54, 0.12)", "4-9 min"),
+            (p9, p13, "rgba(255, 152, 0, 0.12)", "9-13 min"),
+            (p13, p15, "rgba(156, 39, 176, 0.12)", "13-15 min")
+        ]
+        
+        for start, end, color, label in phases:
+            if start < len(df) and start < end:
+                fig.add_vrect(
+                    x0=start, x1=min(end, len(df)-1),
+                    fillcolor=color, opacity=1,
+                    layer="below", line_width=0,
+                    annotation_text=label,
+                    annotation_position="top left",
+                    annotation_font=dict(size=10, color="rgba(255,255,255,0.4)"),
+                    row=1, col=1
+                )
+
     # === Layout ===
     fig.update_layout(
         title='Microprice (Микроцена)',
