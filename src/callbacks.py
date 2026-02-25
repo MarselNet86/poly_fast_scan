@@ -8,6 +8,9 @@ from dash import html, callback, Output, Input, State, ctx, no_update, Patch
 from .data_loader import load_data, compute_cumulative_times
 from .charts import create_orderbook_chart, create_arbitrage_indicator_chart, create_spread_chart, create_imbalance_chart, create_microprice_chart, create_slope_chart, create_eatflow_chart, create_depth_chart, create_btc_chart, create_latency_direction_chart, create_returns_chart, create_volume_chart, create_volatility_chart, create_volume_spike_chart, create_p_vwap_chart
 from .data_cache import get_data_cache
+from .api.polymarket_api import search_market, fetch_trades, parse_trades, TRADER_ADDRESS
+from .utils.filename_parser import extract_game_datetime_from_csv, build_market_query
+from .widgets.microprice_chart import build_timestamp_to_row_mapping
 
 
 # Стили для кнопки Play/Pause
@@ -63,7 +66,9 @@ def register_callbacks(app):
             Output('chart-volume', 'figure'),
             Output('chart-volatility', 'figure'),
             Output('chart-volume-spike', 'figure'),
-            Output('chart-p-vwap', 'figure')
+            Output('chart-p-vwap', 'figure'),
+            Output('trader-data', 'data'),
+            Output('trader-loading-state', 'data')
         ],
         Input('file-selector', 'value')
     )
@@ -71,11 +76,62 @@ def register_callbacks(app):
         """Инициализировать все компоненты при смене файла"""
         if not filename:
             empty_fig = {'data': [], 'layout': {'paper_bgcolor': '#1e1e1e', 'plot_bgcolor': '#2d2d2d'}}
-            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
+            return [], 0, {}, 0, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, None, {'is_loading': False}
 
         cache = get_data_cache()
         df = cache.get_df(filename)
         cumulative_times = compute_cumulative_times(df)
+
+        # === TRADER DATA FETCH ===
+        trader_data = None
+        trader_loading_state = {'is_loading': False}
+
+        try:
+            # Step 1: Extract game datetime from CSV
+            game_datetime = extract_game_datetime_from_csv(df)
+
+            if game_datetime:
+                # Step 2: Build market query
+                market_query = build_market_query(game_datetime)
+                print(f"Searching for market: {market_query}")
+
+                # Step 3: Search for market
+                event, market = search_market(market_query, timeout=10)
+
+                if market:
+                    condition_id = market.get('conditionId')
+                    print(f"Found market: {market.get('question', 'Unknown')}")
+                    print(f"Condition ID: {condition_id}")
+
+                    # Step 4: Fetch trades
+                    if condition_id:
+                        raw_trades = fetch_trades(condition_id, TRADER_ADDRESS, timeout=15)
+
+                        if raw_trades:
+                            # Step 5: Parse trades
+                            parsed_trades = parse_trades(raw_trades)
+                            print(f"Found {len(parsed_trades)} trades for trader {TRADER_ADDRESS}")
+
+                            # Step 6: Build timestamp mapping
+                            row_mapping = build_timestamp_to_row_mapping(df, parsed_trades)
+
+                            # Step 7: Store trader data
+                            trader_data = {
+                                'trades': parsed_trades,
+                                'row_mapping': row_mapping,
+                                'market_name': market.get('question') or market.get('title'),
+                                'condition_id': condition_id
+                            }
+                        else:
+                            print(f"No trades found for trader {TRADER_ADDRESS}")
+                else:
+                    print(f"Market not found for query: {market_query}")
+            else:
+                print("Could not extract game datetime from CSV")
+
+        except Exception as e:
+            print(f"Error fetching trader data: {e}")
+            trader_data = None
 
         max_val = len(df) - 1
         # Создаем только 5 меток для лучшей читаемости
@@ -90,7 +146,7 @@ def register_callbacks(app):
         arbitrage_indicator_fig = create_arbitrage_indicator_chart(df, 0)
         spread_fig = create_spread_chart(df, 0)
         imbalance_fig = create_imbalance_chart(df, 0)
-        microprice_fig = create_microprice_chart(df, 0)
+        microprice_fig = create_microprice_chart(df, 0, trader_data=trader_data)
         slope_fig = create_slope_chart(df, 0)
         eatflow_fig = create_eatflow_chart(df, 0)
         depth_fig = create_depth_chart(df, 0)
@@ -102,7 +158,7 @@ def register_callbacks(app):
         volume_spike_fig = create_volume_spike_chart(df, 0)
         p_vwap_fig = create_p_vwap_chart(df, 0)
 
-        return cumulative_times, max_val, marks, 0, ob_fig, arbitrage_indicator_fig, spread_fig, imbalance_fig, microprice_fig, slope_fig, eatflow_fig, depth_fig, btc_fig, latency_direction_fig, returns_fig, volume_fig, volatility_fig, volume_spike_fig, p_vwap_fig
+        return cumulative_times, max_val, marks, 0, ob_fig, arbitrage_indicator_fig, spread_fig, imbalance_fig, microprice_fig, slope_fig, eatflow_fig, depth_fig, btc_fig, latency_direction_fig, returns_fig, volume_fig, volatility_fig, volume_spike_fig, p_vwap_fig, trader_data, trader_loading_state
 
     # ========================================
     # Callback 2: Обработка Play/Pause кнопки
@@ -1132,3 +1188,259 @@ def register_callbacks(app):
         except Exception as e:
             print(f"Error updating market timer: {e}")
             return '--:--', '(--- сек)'
+
+    # ========================================
+    # Callback 10: Обработка кликов для crosshair
+    # ========================================
+    @callback(
+        Output('crosshair-x-position', 'data'),
+        [
+            Input('chart-orderbook', 'clickData'),
+            Input('chart-microprice', 'clickData'),
+            Input('chart-arbitrage-indicator', 'clickData'),
+            Input('chart-spread', 'clickData'),
+            Input('chart-imbalance', 'clickData'),
+            Input('chart-slope', 'clickData'),
+            Input('chart-eatflow', 'clickData'),
+            Input('chart-depth', 'clickData'),
+            Input('chart-btc', 'clickData'),
+            Input('chart-latency-direction', 'clickData'),
+            Input('chart-returns', 'clickData'),
+            Input('chart-volume', 'clickData'),
+            Input('chart-volatility', 'clickData'),
+            Input('chart-volume-spike', 'clickData'),
+            Input('chart-p-vwap', 'clickData')
+        ],
+        prevent_initial_call=True
+    )
+    def update_crosshair_position(*click_data_list):
+        """Обработать клик на любом из графиков"""
+        if not ctx.triggered:
+            return no_update
+
+        click_data = ctx.triggered[0]['value']
+        if not click_data or 'points' not in click_data:
+            return no_update
+
+        # Извлечь координату X (row_idx)
+        x_coord = click_data['points'][0]['x']
+
+        return {
+            'x': x_coord,
+            'timestamp': time.time()
+        }
+
+    # ========================================
+    # Callback 11: Извлечение значений в точке crosshair
+    # ========================================
+    @callback(
+        Output('crosshair-values', 'data'),
+        Input('crosshair-x-position', 'data'),
+        State('file-selector', 'value'),
+        prevent_initial_call=True
+    )
+    def extract_crosshair_values(crosshair_pos, filename):
+        """Извлечь значения всех метрик в точке crosshair"""
+        if not crosshair_pos or not filename:
+            return None
+
+        x_coord = crosshair_pos['x']
+        row_idx = int(round(x_coord))
+
+        cache = get_data_cache()
+        df = cache.get_df(filename)
+
+        if row_idx < 0 or row_idx >= len(df):
+            return None
+
+        row = df.iloc[row_idx]
+
+        # Собрать все метрики из CSV
+        return {
+            'row_idx': row_idx,
+            'timestamp_et': row.get('timestamp_et', 'N/A'),
+            'time_till_end': row.get('time_till_end', 'N/A'),
+            # Microprice
+            'pm_up_microprice': row.get('pm_up_microprice'),
+            'pm_down_microprice': row.get('pm_down_microprice'),
+            # Spread
+            'pm_up_spread': row.get('pm_up_spread'),
+            'pm_down_spread': row.get('pm_down_spread'),
+            # Imbalance
+            'pm_up_imbalance': row.get('pm_up_imbalance'),
+            'pm_down_imbalance': row.get('pm_down_imbalance'),
+            # BTC
+            'binance_btc_price': row.get('binance_btc_price'),
+            'oracle_btc_price': row.get('oracle_btc_price'),
+            'lag': row.get('lag'),
+            # Returns
+            'binance_ret1s_x100': row.get('binance_ret1s_x100'),
+            'binance_ret5s_x100': row.get('binance_ret5s_x100'),
+            # Volume
+            'binance_volume_1s': row.get('binance_volume_1s'),
+            'binance_volume_5s': row.get('binance_volume_5s'),
+            'binance_volma_30s': row.get('binance_volma_30s'),
+            # Volatility
+            'binance_atr_5s': row.get('binance_atr_5s'),
+            'binance_atr_30s': row.get('binance_atr_30s'),
+            'binance_rvol_30s': row.get('binance_rvol_30s'),
+            # Volume spike
+            'binance_volume_spike': row.get('binance_volume_spike'),
+            # P/VWAP
+            'binance_p_vwap_5s': row.get('binance_p_vwap_5s'),
+            'binance_p_vwap_30s': row.get('binance_p_vwap_30s'),
+            # Depth
+            'pm_up_bid_depth5': row.get('pm_up_bid_depth5'),
+            'pm_up_ask_depth5': row.get('pm_up_ask_depth5'),
+            'pm_down_bid_depth5': row.get('pm_down_bid_depth5'),
+            'pm_down_ask_depth5': row.get('pm_down_ask_depth5'),
+            # EatFlow
+            'pm_up_bid_eatflow': row.get('pm_up_bid_eatflow'),
+            'pm_up_ask_eatflow': row.get('pm_up_ask_eatflow'),
+            'pm_down_bid_eatflow': row.get('pm_down_bid_eatflow'),
+            'pm_down_ask_eatflow': row.get('pm_down_ask_eatflow'),
+            # Slope
+            'pm_up_bid_slope': row.get('pm_up_bid_slope'),
+            'pm_up_ask_slope': row.get('pm_up_ask_slope'),
+            'pm_down_bid_slope': row.get('pm_down_bid_slope'),
+            'pm_down_ask_slope': row.get('pm_down_ask_slope'),
+            # Latency direction
+            'lat_dir_raw_x1000': row.get('lat_dir_raw_x1000'),
+            'lat_dir_norm_x1000': row.get('lat_dir_norm_x1000'),
+        }
+
+    # ========================================
+    # Callback 12: Обновление вертикальных линий на всех графиках
+    # ========================================
+    @callback(
+        [
+            Output('chart-orderbook', 'figure', allow_duplicate=True),
+            Output('chart-microprice', 'figure', allow_duplicate=True),
+            Output('chart-arbitrage-indicator', 'figure', allow_duplicate=True),
+            Output('chart-spread', 'figure', allow_duplicate=True),
+            Output('chart-imbalance', 'figure', allow_duplicate=True),
+            Output('chart-slope', 'figure', allow_duplicate=True),
+            Output('chart-eatflow', 'figure', allow_duplicate=True),
+            Output('chart-depth', 'figure', allow_duplicate=True),
+            Output('chart-btc', 'figure', allow_duplicate=True),
+            Output('chart-latency-direction', 'figure', allow_duplicate=True),
+            Output('chart-returns', 'figure', allow_duplicate=True),
+            Output('chart-volume', 'figure', allow_duplicate=True),
+            Output('chart-volatility', 'figure', allow_duplicate=True),
+            Output('chart-volume-spike', 'figure', allow_duplicate=True),
+            Output('chart-p-vwap', 'figure', allow_duplicate=True)
+        ],
+        Input('crosshair-x-position', 'data'),
+        prevent_initial_call=True
+    )
+    def update_crosshair_lines(crosshair_pos):
+        """Обновить вертикальную линию crosshair на всех графиках"""
+        patches = []
+
+        if not crosshair_pos:
+            # Убрать все линии
+            for _ in range(15):
+                patched_fig = Patch()
+                patched_fig['layout']['shapes'] = []
+                patches.append(patched_fig)
+            return patches
+
+        x_coord = crosshair_pos['x']
+
+        # Создать линию для каждого графика
+        # Графики с subplots нуждаются в линиях для каждого subplot
+
+        # Список названий графиков для определения структуры
+        chart_names = [
+            'orderbook',      # 0: 2x2 subplots (4 квадранта + ask prices внизу)
+            'microprice',     # 1: 1 subplot
+            'arbitrage',      # 2: 1 subplot
+            'spread',         # 3: 1 subplot
+            'imbalance',      # 4: 1 subplot
+            'slope',          # 5: 1 subplot
+            'eatflow',        # 6: 1 subplot
+            'depth',          # 7: 1 subplot
+            'btc',            # 8: 2 subplots (BTC + Lag)
+            'latency',        # 9: 1 subplot
+            'returns',        # 10: 1 subplot
+            'volume',         # 11: 1 subplot
+            'volatility',     # 12: 2 subplots (ATR + RVol)
+            'volume_spike',   # 13: 1 subplot
+            'p_vwap'          # 14: 1 subplot
+        ]
+
+        for idx, chart_name in enumerate(chart_names):
+            patched_fig = Patch()
+
+            if chart_name == 'orderbook':
+                # Orderbook: линия только на ask prices chart (subplot 3)
+                patched_fig['layout']['shapes'] = [
+                    {
+                        'type': 'line',
+                        'x0': x_coord,
+                        'x1': x_coord,
+                        'y0': 0,
+                        'y1': 1,
+                        'yref': 'paper',
+                        'xref': 'x3',  # Ask prices chart
+                        'line': {
+                            'color': 'rgba(255, 215, 0, 0.8)',
+                            'width': 2,
+                            'dash': 'solid'
+                        }
+                    }
+                ]
+            elif chart_name in ['btc', 'volatility']:
+                # 2 subplots: добавить линию на оба
+                patched_fig['layout']['shapes'] = [
+                    {
+                        'type': 'line',
+                        'x0': x_coord,
+                        'x1': x_coord,
+                        'y0': 0,
+                        'y1': 1,
+                        'yref': 'paper',
+                        'xref': 'x',  # Первый subplot
+                        'line': {
+                            'color': 'rgba(255, 215, 0, 0.8)',
+                            'width': 2,
+                            'dash': 'solid'
+                        }
+                    },
+                    {
+                        'type': 'line',
+                        'x0': x_coord,
+                        'x1': x_coord,
+                        'y0': 0,
+                        'y1': 1,
+                        'yref': 'paper',
+                        'xref': 'x2',  # Второй subplot
+                        'line': {
+                            'color': 'rgba(255, 215, 0, 0.8)',
+                            'width': 2,
+                            'dash': 'solid'
+                        }
+                    }
+                ]
+            else:
+                # Одинарные графики
+                patched_fig['layout']['shapes'] = [
+                    {
+                        'type': 'line',
+                        'x0': x_coord,
+                        'x1': x_coord,
+                        'y0': 0,
+                        'y1': 1,
+                        'yref': 'paper',
+                        'xref': 'x',
+                        'line': {
+                            'color': 'rgba(255, 215, 0, 0.8)',
+                            'width': 2,
+                            'dash': 'solid'
+                        }
+                    }
+                ]
+
+            patches.append(patched_fig)
+
+        return patches

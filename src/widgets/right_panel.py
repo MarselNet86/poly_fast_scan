@@ -6,6 +6,7 @@ Right Panel Widget
 from dash import html, dcc
 from ..data_loader import get_csv_files
 from .active_track import create_active_track_widget
+from .crosshair_info import create_crosshair_info_widget
 
 
 def create_playback_controls():
@@ -159,6 +160,7 @@ def create_right_panel():
         create_time_slider(),
         create_performance_settings(),
         create_active_track_widget(),
+        create_crosshair_info_widget(),
     ], style={
         'flex': '1',
         'padding': '20px',

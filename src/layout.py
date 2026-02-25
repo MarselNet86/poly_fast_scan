@@ -5,6 +5,7 @@ Layout Module
 
 from dash import html, dcc
 from .widgets.right_panel import create_right_panel
+from .widgets.loading_overlay import create_loading_overlay
 
 
 def create_header():
@@ -81,14 +82,26 @@ def create_main_layout():
         }),
         dcc.Store(id='cumulative-times', data=[]),
 
+        # Stores для trader data
+        dcc.Store(id='trader-data', data=None),
+        dcc.Store(id='trader-loading-state', data={'is_loading': False}),
+
         # НОВЫЕ STORES для clientside playback
         dcc.Store(id='playback-chunk-request', data=None),  # JS → Server
         dcc.Store(id='playback-chunk-data', data=None),     # Server → JS
+
+        # Store для crosshair
+        dcc.Store(id='crosshair-x-position', data=None),
+        dcc.Store(id='crosshair-values', data=None),
 
         # Dummy divs для clientside callbacks
         html.Div(id='_chunk-receiver-dummy', style={'display': 'none'}),
         html.Div(id='_playback-engine-dummy', style={'display': 'none'}),
         html.Div(id='_playback-init-dummy', style={'display': 'none'}),
+
+        # Loading overlay for trader data
+        create_loading_overlay(),
+
         # Основной layout
         create_header(),
         html.Div([

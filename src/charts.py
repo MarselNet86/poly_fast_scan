@@ -83,14 +83,19 @@ def create_imbalance_chart(df, row_idx):
     return fig
 
 
-def create_microprice_chart(df, row_idx):
+def create_microprice_chart(df, row_idx, trader_data=None):
     """
     Создать независимый график Microprice для main view.
+
+    Args:
+        df: DataFrame с данными
+        row_idx: Текущий индекс строки
+        trader_data: Optional dict с данными трейдера
 
     Returns:
         go.Figure: Plotly фигура с микроценой
     """
-    fig = create_microprice_figure(df, row_idx)
+    fig = create_microprice_figure(df, row_idx, trader_data=trader_data)
     fig.update_layout(height=450)
     return fig
 
