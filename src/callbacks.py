@@ -952,13 +952,11 @@ def register_callbacks(app):
 
         # Сброс зума на BTC price
         if 'xaxis.autorange' in relayout_data:
-            patched_fig['layout']['xaxis2']['autorange'] = True
-            return patched_fig
+            return no_update
 
         # Сброс зума на Lag
         if 'xaxis2.autorange' in relayout_data:
-            patched_fig['layout']['xaxis']['autorange'] = True
-            return patched_fig
+            return no_update
 
         return no_update
 
@@ -1006,13 +1004,11 @@ def register_callbacks(app):
 
         # Сброс зума на ATR
         if 'xaxis.autorange' in relayout_data:
-            patched_fig['layout']['xaxis2']['autorange'] = True
-            return patched_fig
+            return no_update
 
         # Сброс зума на RVol
         if 'xaxis2.autorange' in relayout_data:
-            patched_fig['layout']['xaxis']['autorange'] = True
-            return patched_fig
+            return no_update
 
         return no_update
 

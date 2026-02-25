@@ -24,49 +24,49 @@ def create_left_panel():
     """Создать левую панель с пятью независимыми графиками"""
     return html.Div([
         # Orderbook chart (UP/DOWN orderbook + Ask prices)
-        dcc.Graph(id='chart-orderbook', style={'height': '700px', 'width': '100%'}),
+        dcc.Graph(id='chart-orderbook', style={'height': '700px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Microprice chart
-        dcc.Graph(id='chart-microprice', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-microprice', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Arbitrage Indicator chart
-        dcc.Graph(id='chart-arbitrage-indicator', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-arbitrage-indicator', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Spread chart
-        dcc.Graph(id='chart-spread', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-spread', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Imbalance chart
-        dcc.Graph(id='chart-imbalance', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-imbalance', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Slope chart
-        dcc.Graph(id='chart-slope', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-slope', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # EatFlow chart
-        dcc.Graph(id='chart-eatflow', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-eatflow', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Depth chart
-        dcc.Graph(id='chart-depth', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-depth', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # BTC chart (BTC Price + Lag)
-        dcc.Graph(id='chart-btc', style={'height': '700px', 'width': '100%'}),
+        dcc.Graph(id='chart-btc', style={'height': '700px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Latency Direction chart (oracle lag indicator)
-        dcc.Graph(id='chart-latency-direction', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-latency-direction', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Returns chart (Momentum / Returns)
-        dcc.Graph(id='chart-returns', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-returns', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Volume chart (V1s, V5s, VolMA)
-        dcc.Graph(id='chart-volume', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-volume', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Volatility chart (ATR, RVol)
-        dcc.Graph(id='chart-volatility', style={'height': '700px', 'width': '100%'}),
+        dcc.Graph(id='chart-volatility', style={'height': '700px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # Volume Spike chart
-        dcc.Graph(id='chart-volume-spike', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-volume-spike', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
 
         # P/VWAP chart (% отклонение от VWAP)
-        dcc.Graph(id='chart-p-vwap', style={'height': '450px', 'width': '100%'}),
+        dcc.Graph(id='chart-p-vwap', style={'height': '450px', 'width': '100%'}, config={'doubleClick': 'reset', 'responsive': True}),
     ], style={'flex': '3', 'padding': '15px'})
 
 

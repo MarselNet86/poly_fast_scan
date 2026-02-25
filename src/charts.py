@@ -281,7 +281,9 @@ def create_orderbook_figure(df, row_idx):
         paper_bgcolor='#1e1e1e',
         plot_bgcolor='#2d2d2d',
         font=dict(color='white'),
-        margin=dict(l=50, r=20, t=60, b=60)
+        margin=dict(l=50, r=20, t=60, b=60),
+        uirevision=True,
+        autosize=True
     )
 
     return fig
@@ -318,7 +320,9 @@ def create_btc_figure(df, row_idx):
         paper_bgcolor='#1e1e1e',
         plot_bgcolor='#2d2d2d',
         font=dict(color='white'),
-        margin=dict(l=50, r=20, t=60, b=60)
+        margin=dict(l=50, r=20, t=60, b=60),
+        uirevision=True,
+        autosize=True
     )
 
     return fig
@@ -380,7 +384,7 @@ def _add_ask_prices(fig, df, row_idx):
     )
 
     fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=2, col=1)
-    fig.update_xaxes(row=2, col=1, gridcolor='#444')
+    fig.update_xaxes(row=2, col=1, gridcolor='#444', range=[-100, len(df)])
     fig.update_yaxes(row=2, col=1, gridcolor='#444', tickformat='.4f', automargin=False)
 
 
@@ -440,7 +444,7 @@ def _add_btc(fig, df, row_idx):
     )
 
     fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=1, col=1)
-    fig.update_xaxes(row=1, col=1, gridcolor='#444')
+    fig.update_xaxes(row=1, col=1, gridcolor='#444', range=[-100, len(df)])
     fig.update_yaxes(row=1, col=1, gridcolor='#444', tickformat=',.0f', automargin=False)
 
 
@@ -477,5 +481,5 @@ def _add_lag(fig, df, row_idx):
     )
 
     fig.add_vline(x=row_idx, line_color='rgba(255,255,255,0.2)', line_width=1, line_dash='dot', row=2, col=1)
-    fig.update_xaxes(row=2, col=1, gridcolor='#444')
+    fig.update_xaxes(row=2, col=1, gridcolor='#444', range=[-100, len(df)])
     fig.update_yaxes(row=2, col=1, gridcolor='#444', tickformat=',.0f', automargin=False)
